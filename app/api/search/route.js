@@ -42,13 +42,15 @@ async function enrichWithLatestPosts(results) {
             /<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/
           );
           const dateMatch = item.match(/<pubDate>([\s\S]*?)<\/pubDate>/);
+          const linkMatch = item.match(/<link>([\s\S]*?)<\/link>/);
           const title = titleMatch ? titleMatch[1].trim() : '';
+          const link = linkMatch ? linkMatch[1].trim() : null;
           let date = null;
           if (dateMatch) {
             const d = new Date(dateMatch[1].trim());
             if (!isNaN(d.getTime())) date = d.toISOString();
           }
-          if (title) posts.push({ title, date });
+          if (title) posts.push({ title, date, link });
         }
         r.latestPosts = posts;
         r.lastPostAt = posts.find((p) => p.date)?.date || null;

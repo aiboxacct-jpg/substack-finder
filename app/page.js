@@ -247,19 +247,22 @@ export default function Home() {
 
             <div className="space-y-4">
               {displayed.map((r, i) => (
-                <a
+                <div
                   key={i}
-                  href={r.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group block rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-orange-300 hover:shadow-md"
+                  className="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-orange-300 hover:shadow-md"
                 >
-                  <div className="flex items-start justify-between gap-3">
+                  {/* Newsletter name links to the newsletter */}
+                  <a
+                    href={r.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-start justify-between gap-3"
+                  >
                     <h2 className="text-lg font-semibold text-gray-900 group-hover:text-orange-600">
                       {r.name}
                     </h2>
                     <ExternalLink className="mt-1 h-4 w-4 flex-shrink-0 text-gray-400 group-hover:text-orange-500" />
-                  </div>
+                  </a>
                   {r.author && (
                     <div className="mt-1 flex items-center gap-1.5 text-sm text-gray-500">
                       <User className="h-3.5 w-3.5" />
@@ -276,23 +279,40 @@ export default function Home() {
                   )}
                   {r.latestPosts && r.latestPosts.length > 0 && (
                     <div className="mt-3 space-y-1.5 border-t border-gray-100 pt-3">
-                      {r.latestPosts.slice(0, 2).map((p, j) => (
-                        <div
-                          key={j}
-                          className="flex items-center gap-2 text-xs text-gray-500"
-                        >
-                          <FileText className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
-                          <span className="truncate">{p.title}</span>
-                          {p.date && (
-                            <span className="ml-auto flex-shrink-0 text-gray-400">
-                              {relativeTime(p.date)}
-                            </span>
-                          )}
-                        </div>
-                      ))}
+                      {r.latestPosts.slice(0, 2).map((p, j) => {
+                        const row = (
+                          <>
+                            <FileText className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
+                            <span className="truncate">{p.title}</span>
+                            {p.date && (
+                              <span className="ml-auto flex-shrink-0 text-gray-400">
+                                {relativeTime(p.date)}
+                              </span>
+                            )}
+                          </>
+                        );
+                        return p.link ? (
+                          <a
+                            key={j}
+                            href={p.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 text-xs text-gray-500 transition hover:text-orange-600"
+                          >
+                            {row}
+                          </a>
+                        ) : (
+                          <div
+                            key={j}
+                            className="flex items-center gap-2 text-xs text-gray-500"
+                          >
+                            {row}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
-                </a>
+                </div>
               ))}
             </div>
           </>
