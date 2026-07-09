@@ -17,7 +17,7 @@ import {
 const STARTER_TOPICS = [
   'Anime',
   'Retail arbitrage',
-  'Reselling on eBay',
+  'Politics',
   'Personal finance',
   'AI & tech',
   'Fragrance',
