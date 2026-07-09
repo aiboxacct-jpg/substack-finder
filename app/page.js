@@ -1,7 +1,15 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, ExternalLink, User, Loader2, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import {
+  Search,
+  ExternalLink,
+  User,
+  Loader2,
+  AlertCircle,
+  Copy,
+  Check,
+} from 'lucide-react';
 
 // The "starter topic" pill buttons shown under the search box.
 const STARTER_TOPICS = [
@@ -19,6 +27,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searched, setSearched] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // Calls our OWN backend (/api/search) — never api.anthropic.com directly.
   async function runSearch(searchTopic) {
@@ -30,6 +39,11 @@ export default function Home() {
     setError('');
     setResults([]);
     setSearched(true);
+
+    // Reflect the current topic in the URL so it can be copied/shared.
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `?topic=${encodeURIComponent(t)}`);
+    }
 
     try {
       const res = await fetch('/api/search', {
@@ -51,9 +65,33 @@ export default function Home() {
     }
   }
 
+  // If the page is opened with ?topic=... (a shared link), run that search.
+  useEffect(() => {
+    const shared = new URLSearchParams(window.location.search).get('topic');
+    if (shared) {
+      setTopic(shared);
+      runSearch(shared);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function handleSubmit(e) {
     e.preventDefault();
     runSearch();
+  }
+
+  // Copy a shareable link for the current topic to the clipboard.
+  async function copyShareLink() {
+    const url = `${window.location.origin}${window.location.pathname}?topic=${encodeURIComponent(
+      topic
+    )}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard not available — quietly ignore.
+    }
   }
 
   return (
@@ -124,33 +162,58 @@ export default function Home() {
 
         {/* Result cards */}
         {!loading && !error && results.length > 0 && (
-          <div className="space-y-4">
-            {results.map((r, i) => (
-              <a
-                key={i}
-                href={r.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group block rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-orange-300 hover:shadow-md"
+          <>
+            {/* Toolbar: current topic + copyable share link */}
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="truncate text-sm text-gray-500">
+                Results for “{topic}”
+              </p>
+              <button
+                onClick={copyShareLink}
+                className="flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-orange-200 px-3 py-1.5 text-sm text-orange-700 transition hover:bg-orange-50"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <h2 className="text-lg font-semibold text-gray-900 group-hover:text-orange-600">
-                    {r.name}
-                  </h2>
-                  <ExternalLink className="mt-1 h-4 w-4 flex-shrink-0 text-gray-400 group-hover:text-orange-500" />
-                </div>
-                {r.author && (
-                  <div className="mt-1 flex items-center gap-1.5 text-sm text-gray-500">
-                    <User className="h-3.5 w-3.5" />
-                    <span>{r.author}</span>
+                {copied ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+                {copied ? 'Copied!' : 'Copy link'}
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {results.map((r, i) => (
+                <a
+                  key={i}
+                  href={r.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group block rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-orange-300 hover:shadow-md"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <h2 className="text-lg font-semibold text-gray-900 group-hover:text-orange-600">
+                      {r.name}
+                    </h2>
+                    <ExternalLink className="mt-1 h-4 w-4 flex-shrink-0 text-gray-400 group-hover:text-orange-500" />
                   </div>
-                )}
-                {r.description && (
-                  <p className="mt-2 text-sm text-gray-600">{r.description}</p>
-                )}
-              </a>
-            ))}
-          </div>
+                  {r.author && (
+                    <div className="mt-1 flex items-center gap-1.5 text-sm text-gray-500">
+                      <User className="h-3.5 w-3.5" />
+                      <span>{r.author}</span>
+                    </div>
+                  )}
+                  {r.description && (
+                    <p className="mt-2 text-sm text-gray-600">{r.description}</p>
+                  )}
+                  {r.tag && (
+                    <span className="mt-3 inline-block rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-700">
+                      {r.tag}
+                    </span>
+                  )}
+                </a>
+              ))}
+            </div>
+          </>
         )}
 
         {/* Empty state after a search returns nothing */}
