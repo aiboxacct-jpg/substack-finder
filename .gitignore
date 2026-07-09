@@ -1,0 +1,17 @@
+# dependencies
+node_modules/
+
+# next.js build output
+.next/
+out/
+
+# secrets — never commit these
+.env.local
+.env*.local
+
+# local tooling / editor config
+.claude/
+
+# misc
+.DS_Store
+*.log
