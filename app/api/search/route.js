@@ -185,7 +185,7 @@ export async function POST(request) {
       message = 'The API key is missing or invalid. Please check the server configuration.';
     } else if (/credit balance/i.test(apiMessage)) {
       message =
-        'Searches are temporarily unavailable (the account needs more credit). Please try again later.';
+        'Searches are temporarily unavailable (it is being replenished). Please try again later, or tip now to keep the service up!';
     } else if (status === 429) {
       message = 'The search service is busy right now. Please try again in a moment.';
     }
