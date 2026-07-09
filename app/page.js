@@ -21,6 +21,14 @@ const STARTER_TOPICS = [
   'Fragrance',
 ];
 
+// Rotating status lines shown during the (slow) live web search.
+const LOADING_MESSAGES = [
+  'Searching the web for newsletters…',
+  'Reading Substack pages…',
+  'Checking which ones are still active…',
+  'Picking the 6 best matches…',
+];
+
 export default function Home() {
   const [topic, setTopic] = useState('');
   const [results, setResults] = useState([]);
@@ -28,6 +36,7 @@ export default function Home() {
   const [error, setError] = useState('');
   const [searched, setSearched] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [loadingMsg, setLoadingMsg] = useState(0);
 
   // Calls our OWN backend (/api/search) — never api.anthropic.com directly.
   async function runSearch(searchTopic) {
@@ -74,6 +83,18 @@ export default function Home() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // While loading, cycle through the status messages every few seconds.
+  useEffect(() => {
+    if (!loading) {
+      setLoadingMsg(0);
+      return;
+    }
+    const id = setInterval(() => {
+      setLoadingMsg((i) => (i + 1) % LOADING_MESSAGES.length);
+    }, 4000);
+    return () => clearInterval(id);
+  }, [loading]);
 
   function handleSubmit(e) {
     e.preventDefault();
@@ -144,10 +165,13 @@ export default function Home() {
 
         {/* Loading spinner */}
         {loading && (
-          <div className="flex flex-col items-center justify-center gap-3 py-12 text-orange-500">
+          <div className="flex flex-col items-center justify-center gap-2 py-12 text-orange-500">
             <Loader2 className="h-8 w-8 animate-spin" />
-            <p className="text-sm text-gray-600">
-              Searching the web for great newsletters…
+            <p className="mt-1 text-sm font-medium text-gray-700">
+              {LOADING_MESSAGES[loadingMsg]}
+            </p>
+            <p className="text-xs text-gray-400">
+              Reading the live web — this can take a minute or two.
             </p>
           </div>
         )}

@@ -1,6 +1,13 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { checkRateLimit, checkDailyCap } from '@/lib/rateLimit';
 
+// Simple in-memory cache: a topic's results are reused for 24 hours so repeat
+// (and popular) searches return instantly and cost nothing. Like the rate
+// limiter, this is per-server-instance and resets on restart — fine as a
+// speed-up; use Upstash Redis if you later want it shared/durable.
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const searchCache = new Map(); // normalized topic -> { results, expires }
+
 // This runs ONLY on the server, so the API key is never sent to the browser.
 export async function POST(request) {
   try {
@@ -27,6 +34,13 @@ export async function POST(request) {
       return Response.json({ error: 'Please enter a topic.' }, { status: 400 });
     }
 
+    // 3. Serve from cache if we've searched this topic recently (instant, free).
+    const cacheKey = topic.trim().toLowerCase();
+    const cached = searchCache.get(cacheKey);
+    if (cached && cached.expires > Date.now()) {
+      return Response.json({ results: cached.results, cached: true });
+    }
+
     if (!process.env.ANTHROPIC_API_KEY) {
       return Response.json(
         { error: 'The server is missing its API key. Please contact the site owner.' },
@@ -34,7 +48,7 @@ export async function POST(request) {
       );
     }
 
-    // 3. Site-wide daily cap: a safety net so total searches can't spike the bill.
+    // 4. Site-wide daily cap: a safety net so total searches can't spike the bill.
     const daily = checkDailyCap();
     if (!daily.allowed) {
       return Response.json(
@@ -46,15 +60,15 @@ export async function POST(request) {
       );
     }
 
-    // 4. The prompt sent to Claude (kept from the prototype).
-    const prompt = `Use web search to find real, currently-active Substack newsletters about: "${topic}". Use at most 2 web searches (e.g. "${topic} site:substack.com" and "best ${topic} substack newsletters"), then return the 6 most relevant. Respond with ONLY a raw JSON array (no markdown, no backticks). Each object: "name", "author" (use "" if unknown), "url" (real Substack URL, do not invent), "description" (one sentence, max ~18 words), "tag" (1-3 word category or vibe, e.g. "beginner-friendly", "deep dives", "weekly"). Only include newsletters found via search.`;
+    // 5. The prompt sent to Claude (kept from the prototype).
+    const prompt = `Use web search to find real, currently-active Substack newsletters about: "${topic}". Try queries like "${topic} site:substack.com" and "best ${topic} substack newsletters" and return the 6 most relevant. Respond with ONLY a raw JSON array (no markdown, no backticks). Each object: "name", "author" (use "" if unknown), "url" (real Substack URL, do not invent), "description" (one sentence, max ~18 words), "tag" (1-3 word category or vibe, e.g. "beginner-friendly", "deep dives", "weekly"). Only include newsletters found via search.`;
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
     const requestParams = {
       model: 'claude-sonnet-4-6',
-      max_tokens: 2500,
-      tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 3 }],
+      max_tokens: 2000,
+      tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 5 }],
       messages: [{ role: 'user', content: prompt }],
     };
 
@@ -69,7 +83,7 @@ export async function POST(request) {
       guard += 1;
     }
 
-    // 4. Extract the text blocks, strip code fences, slice to the JSON array.
+    // 6. Extract the text blocks, strip code fences, slice to the JSON array.
     const text = response.content
       .filter((block) => block.type === 'text')
       .map((block) => block.text)
@@ -92,6 +106,14 @@ export async function POST(request) {
         { error: 'Could not read the results. Please try again.' },
         { status: 200 }
       );
+    }
+
+    // Cache only real, non-empty results so a bad/empty run isn't remembered.
+    if (Array.isArray(results) && results.length > 0) {
+      searchCache.set(cacheKey, {
+        results,
+        expires: Date.now() + CACHE_TTL_MS,
+      });
     }
 
     return Response.json({ results });
