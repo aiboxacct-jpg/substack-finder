@@ -53,7 +53,7 @@ export async function POST(request) {
 
     const requestParams = {
       model: 'claude-sonnet-4-6',
-      max_tokens: 1200,
+      max_tokens: 2500,
       tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 3 }],
       messages: [{ role: 'user', content: prompt }],
     };
