@@ -176,14 +176,14 @@ export default function Home() {
           </div>
         </form>
 
-        {/* Starter topic pills */}
-        <div className="mb-8 flex flex-wrap justify-center gap-2">
+        {/* Starter topic pills — kept on a single row (scrolls sideways if narrow) */}
+        <div className="mb-8 flex flex-nowrap justify-center gap-2 overflow-x-auto pb-1">
           {STARTER_TOPICS.map((s) => (
             <button
               key={s}
               onClick={() => runSearch(s)}
               disabled={loading}
-              className="rounded-full border border-orange-200 bg-white px-4 py-1.5 text-sm text-gray-700 transition hover:border-orange-400 hover:bg-orange-50 disabled:opacity-50"
+              className="whitespace-nowrap rounded-full border border-orange-200 bg-white px-3 py-1.5 text-sm text-gray-700 transition hover:border-orange-400 hover:bg-orange-50 disabled:opacity-50"
             >
               {s}
             </button>
