@@ -47,14 +47,14 @@ export async function POST(request) {
     }
 
     // 4. The prompt sent to Claude (kept from the prototype).
-    const prompt = `Use web search to find real, currently-active Substack newsletters about: "${topic}". Try queries like "${topic} site:substack.com" and "best ${topic} substack newsletters" and return the 6 most relevant. Respond with ONLY a raw JSON array (no markdown, no backticks). Each object: "name", "author" (use "" if unknown), "url" (real Substack URL, do not invent), "description" (one sentence, max ~18 words). Only include newsletters found via search.`;
+    const prompt = `Use web search to find real, currently-active Substack newsletters about: "${topic}". Use at most 2 web searches (e.g. "${topic} site:substack.com" and "best ${topic} substack newsletters"), then return the 6 most relevant. Respond with ONLY a raw JSON array (no markdown, no backticks). Each object: "name", "author" (use "" if unknown), "url" (real Substack URL, do not invent), "description" (one sentence, max ~18 words). Only include newsletters found via search.`;
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
     const requestParams = {
       model: 'claude-sonnet-4-6',
-      max_tokens: 2000,
-      tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 5 }],
+      max_tokens: 1200,
+      tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 3 }],
       messages: [{ role: 'user', content: prompt }],
     };
 
