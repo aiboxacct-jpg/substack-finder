@@ -9,6 +9,8 @@ import {
   AlertCircle,
   Copy,
   Check,
+  FileText,
+  ArrowUpDown,
 } from 'lucide-react';
 
 // The "starter topic" pill buttons shown under the search box.
@@ -29,6 +31,20 @@ const LOADING_MESSAGES = [
   'Picking the 6 best matches…',
 ];
 
+// Turn an ISO date into a short "3d ago" style label.
+function relativeTime(iso) {
+  if (!iso) return '';
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return '';
+  const diff = Date.now() - then;
+  const day = 86400000;
+  if (diff < 3600000) return 'just now';
+  if (diff < day) return `${Math.floor(diff / 3600000)}h ago`;
+  if (diff < 30 * day) return `${Math.floor(diff / day)}d ago`;
+  if (diff < 365 * day) return `${Math.floor(diff / (30 * day))}mo ago`;
+  return `${Math.floor(diff / (365 * day))}y ago`;
+}
+
 export default function Home() {
   const [topic, setTopic] = useState('');
   const [results, setResults] = useState([]);
@@ -37,6 +53,7 @@ export default function Home() {
   const [searched, setSearched] = useState(false);
   const [copied, setCopied] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState(0);
+  const [sortBy, setSortBy] = useState('relevance');
 
   // Calls our OWN backend (/api/search) — never api.anthropic.com directly.
   async function runSearch(searchTopic) {
@@ -115,6 +132,16 @@ export default function Home() {
     }
   }
 
+  // When "Most recent post" is chosen, sort a copy by newest post first.
+  const displayed =
+    sortBy === 'recent'
+      ? [...results].sort(
+          (a, b) =>
+            (b.lastPostAt ? Date.parse(b.lastPostAt) : 0) -
+            (a.lastPostAt ? Date.parse(a.lastPostAt) : 0)
+        )
+      : results;
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-orange-50 to-white px-4 py-12">
       <div className="mx-auto max-w-2xl">
@@ -187,26 +214,39 @@ export default function Home() {
         {/* Result cards */}
         {!loading && !error && results.length > 0 && (
           <>
-            {/* Toolbar: current topic + copyable share link */}
-            <div className="mb-3 flex items-center justify-between gap-3">
+            {/* Toolbar: current topic, sort control, and copyable share link */}
+            <div className="mb-3 space-y-2">
               <p className="truncate text-sm text-gray-500">
                 Results for “{topic}”
               </p>
-              <button
-                onClick={copyShareLink}
-                className="flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-orange-200 px-3 py-1.5 text-sm text-orange-700 transition hover:bg-orange-50"
-              >
-                {copied ? (
-                  <Check className="h-4 w-4" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-                {copied ? 'Copied!' : 'Copy link'}
-              </button>
+              <div className="flex items-center justify-between gap-3">
+                <label className="flex items-center gap-1.5 text-sm text-gray-600">
+                  <ArrowUpDown className="h-4 w-4 text-gray-400" />
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-sm text-gray-700 outline-none focus:border-orange-400"
+                  >
+                    <option value="relevance">Most relevant</option>
+                    <option value="recent">Most recent post</option>
+                  </select>
+                </label>
+                <button
+                  onClick={copyShareLink}
+                  className="flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-orange-200 px-3 py-1.5 text-sm text-orange-700 transition hover:bg-orange-50"
+                >
+                  {copied ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                  {copied ? 'Copied!' : 'Copy link'}
+                </button>
+              </div>
             </div>
 
             <div className="space-y-4">
-              {results.map((r, i) => (
+              {displayed.map((r, i) => (
                 <a
                   key={i}
                   href={r.url}
@@ -233,6 +273,24 @@ export default function Home() {
                     <span className="mt-3 inline-block rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-700">
                       {r.tag}
                     </span>
+                  )}
+                  {r.latestPosts && r.latestPosts.length > 0 && (
+                    <div className="mt-3 space-y-1.5 border-t border-gray-100 pt-3">
+                      {r.latestPosts.slice(0, 2).map((p, j) => (
+                        <div
+                          key={j}
+                          className="flex items-center gap-2 text-xs text-gray-500"
+                        >
+                          <FileText className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
+                          <span className="truncate">{p.title}</span>
+                          {p.date && (
+                            <span className="ml-auto flex-shrink-0 text-gray-400">
+                              {relativeTime(p.date)}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </a>
               ))}

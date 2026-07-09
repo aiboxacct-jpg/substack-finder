@@ -8,6 +8,58 @@ import { checkRateLimit, checkDailyCap } from '@/lib/rateLimit';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const searchCache = new Map(); // normalized topic -> { results, expires }
 
+// For each newsletter, fetch its Substack RSS feed (…/feed) to get the latest
+// post titles + dates. Runs all feeds in parallel with a short timeout; any
+// feed that fails just leaves that card without posts (never breaks a search).
+async function enrichWithLatestPosts(results) {
+  await Promise.all(
+    results.map(async (r) => {
+      r.latestPosts = [];
+      r.lastPostAt = null;
+
+      let feedUrl;
+      try {
+        feedUrl = new URL(r.url).origin + '/feed';
+      } catch {
+        return; // no valid URL
+      }
+
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 4000);
+        const res = await fetch(feedUrl, {
+          signal: controller.signal,
+          headers: { 'User-Agent': 'SubstackFinder/1.0 (+substack-finder.vercel.app)' },
+        });
+        clearTimeout(timer);
+        if (!res.ok) return;
+
+        const xml = await res.text();
+        const items = xml.split('<item>').slice(1, 4); // up to 3 most recent
+        const posts = [];
+        for (const item of items) {
+          const titleMatch = item.match(
+            /<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/
+          );
+          const dateMatch = item.match(/<pubDate>([\s\S]*?)<\/pubDate>/);
+          const title = titleMatch ? titleMatch[1].trim() : '';
+          let date = null;
+          if (dateMatch) {
+            const d = new Date(dateMatch[1].trim());
+            if (!isNaN(d.getTime())) date = d.toISOString();
+          }
+          if (title) posts.push({ title, date });
+        }
+        r.latestPosts = posts;
+        r.lastPostAt = posts.find((p) => p.date)?.date || null;
+      } catch {
+        // feed unavailable / timed out — leave this card's posts empty
+      }
+    })
+  );
+  return results;
+}
+
 // This runs ONLY on the server, so the API key is never sent to the browser.
 export async function POST(request) {
   try {
@@ -108,8 +160,10 @@ export async function POST(request) {
       );
     }
 
-    // Cache only real, non-empty results so a bad/empty run isn't remembered.
+    // Enrich with each newsletter's latest posts (from RSS), then cache only
+    // real, non-empty results so a bad/empty run isn't remembered.
     if (Array.isArray(results) && results.length > 0) {
+      await enrichWithLatestPosts(results);
       searchCache.set(cacheKey, {
         results,
         expires: Date.now() + CACHE_TTL_MS,
