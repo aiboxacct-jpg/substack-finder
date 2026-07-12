@@ -10,6 +10,7 @@ import {
   Loader2,
   CreditCard,
   Sparkles,
+  ChevronDown,
 } from 'lucide-react';
 import ProfileModal from './ProfileModal';
 
@@ -117,11 +118,12 @@ export default function AuthBar() {
         <div className="flex items-center justify-end gap-3 text-sm">
           <button
             onClick={() => setShowProfile(true)}
-            title="Your account"
-            className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-gray-600 transition hover:bg-gray-100"
+            title="View your account & subscription"
+            className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-gray-700 shadow-sm transition hover:border-orange-300 hover:bg-orange-50"
           >
             <User className="h-4 w-4 text-gray-400" />
-            {user.email}
+            <span className="max-w-[150px] truncate">{user.email}</span>
+            <ChevronDown className="h-4 w-4 text-gray-400" />
           </button>
           {subscribed ? (
             <span className="flex items-center gap-1.5 rounded-lg bg-green-50 px-2.5 py-1 font-medium text-green-700">
