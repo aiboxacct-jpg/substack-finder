@@ -12,6 +12,8 @@ import {
   FileText,
   ArrowUpDown,
   X,
+  Bookmark,
+  BookmarkCheck,
 } from 'lucide-react';
 import AuthBar from './AuthBar';
 import { supabase } from '@/lib/supabase';
@@ -57,6 +59,37 @@ export default function Home() {
   const [copied, setCopied] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState(0);
   const [sortBy, setSortBy] = useState('relevance');
+  const [user, setUser] = useState(null);
+  const [isMember, setIsMember] = useState(false);
+  const [saveState, setSaveState] = useState('idle'); // idle | saving | saved
+
+  // Track login + membership (members see the Save button).
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) =>
+      setUser(session?.user ?? null)
+    );
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setIsMember(false);
+      return;
+    }
+    let active = true;
+    supabase
+      .from('profiles')
+      .select('is_subscribed')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (active) setIsMember(!!data?.is_subscribed);
+      });
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   // Calls our OWN backend (/api/search) — never api.anthropic.com directly.
   async function runSearch(searchTopic) {
@@ -153,6 +186,19 @@ export default function Home() {
     if (typeof window !== 'undefined') {
       window.history.replaceState(null, '', window.location.pathname);
     }
+  }
+
+  // Save the current search (members only) so it can be revisited later.
+  async function saveSearch() {
+    if (!user || !isMember || results.length === 0) return;
+    setSaveState('saving');
+    const { error: saveErr } = await supabase.from('saved_searches').insert({
+      user_id: user.id,
+      topic,
+      results,
+    });
+    setSaveState(saveErr ? 'idle' : 'saved');
+    if (!saveErr) setTimeout(() => setSaveState('idle'), 2500);
   }
 
   // When "Most recent post" is chosen, sort a copy by newest post first.
@@ -260,6 +306,20 @@ export default function Home() {
                   </select>
                 </label>
                 <div className="flex flex-shrink-0 items-center gap-2">
+                  {isMember && (
+                    <button
+                      onClick={saveSearch}
+                      disabled={saveState !== 'idle'}
+                      className="flex items-center gap-1.5 rounded-lg border border-orange-200 px-3 py-1.5 text-sm text-orange-700 transition hover:bg-orange-50 disabled:opacity-60"
+                    >
+                      {saveState === 'saved' ? (
+                        <BookmarkCheck className="h-4 w-4" />
+                      ) : (
+                        <Bookmark className="h-4 w-4" />
+                      )}
+                      {saveState === 'saved' ? 'Saved' : 'Save'}
+                    </button>
+                  )}
                   <button
                     onClick={clearAll}
                     className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 transition hover:bg-gray-50"

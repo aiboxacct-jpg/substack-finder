@@ -1,6 +1,15 @@
 'use client';
 
-import { X, Sparkles, CreditCard, CheckCircle2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import {
+  X,
+  Sparkles,
+  CreditCard,
+  CheckCircle2,
+  Search,
+  Trash2,
+} from 'lucide-react';
 
 // The tools under the Stack Tools umbrella. One subscription unlocks all of
 // them, so each live tool shows Member/Free based on the shared status.
@@ -13,6 +22,43 @@ const STACK_TOOLS = [
 ];
 
 export default function ProfileModal({ open, onClose, user, subscribed, onSubscribe }) {
+  const [saved, setSaved] = useState([]);
+  const [loadingSaved, setLoadingSaved] = useState(false);
+
+  // Load this member's saved searches whenever the popup opens.
+  useEffect(() => {
+    if (!open || !subscribed || !user) {
+      setSaved([]);
+      return;
+    }
+    let active = true;
+    setLoadingSaved(true);
+    supabase
+      .from('saved_searches')
+      .select('id, topic, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        if (active) {
+          setSaved(data || []);
+          setLoadingSaved(false);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [open, subscribed, user]);
+
+  async function removeSaved(id) {
+    setSaved((s) => s.filter((x) => x.id !== id));
+    await supabase.from('saved_searches').delete().eq('id', id);
+  }
+
+  // Re-run a saved search: navigate to ?topic=… which auto-runs it on load.
+  function runSaved(topic) {
+    window.location.href = `/?topic=${encodeURIComponent(topic)}`;
+  }
+
   if (!open || !user) return null;
 
   return (
@@ -22,7 +68,7 @@ export default function ProfileModal({ open, onClose, user, subscribed, onSubscr
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-2xl border border-gray-100 bg-white p-6 shadow-2xl"
+        className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-2xl border border-gray-100 bg-white p-6 shadow-2xl"
       >
         {/* Header */}
         <div className="mb-4 flex items-start justify-between">
@@ -113,6 +159,47 @@ export default function ProfileModal({ open, onClose, user, subscribed, onSubscr
             More Stack Tools coming soon
           </div>
         </div>
+
+        {/* Saved searches — members only */}
+        {subscribed && (
+          <div className="mt-5">
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">
+              Saved searches
+            </p>
+            {loadingSaved ? (
+              <p className="px-1 text-sm text-gray-400">Loading…</p>
+            ) : saved.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-gray-200 p-3 text-center text-xs text-gray-400">
+                No saved searches yet. Run a search and click “Save”.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {saved.map((s) => (
+                  <div
+                    key={s.id}
+                    className="flex items-center justify-between gap-2 rounded-xl border border-gray-200 p-3"
+                  >
+                    <button
+                      onClick={() => runSaved(s.topic)}
+                      title="Run this search"
+                      className="flex min-w-0 items-center gap-2 text-left text-sm text-gray-800 transition hover:text-orange-600"
+                    >
+                      <Search className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
+                      <span className="truncate">{s.topic}</span>
+                    </button>
+                    <button
+                      onClick={() => removeSaved(s.id)}
+                      aria-label="Delete saved search"
+                      className="flex-shrink-0 rounded-md p-1 text-gray-400 transition hover:bg-gray-100 hover:text-red-500"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
