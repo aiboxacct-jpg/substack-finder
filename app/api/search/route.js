@@ -125,7 +125,7 @@ export async function POST(request) {
       // standard web_search_20250305 variant here.
       model: 'claude-haiku-4-5',
       max_tokens: 2000,
-      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 2 }],
+      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 1 }],
       messages: [{ role: 'user', content: prompt }],
     };
 
