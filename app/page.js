@@ -11,6 +11,7 @@ import {
   Check,
   FileText,
   ArrowUpDown,
+  X,
 } from 'lucide-react';
 import AuthBar from './AuthBar';
 
@@ -133,6 +134,18 @@ export default function Home() {
     }
   }
 
+  // Reset everything back to a blank slate.
+  function clearAll() {
+    setTopic('');
+    setResults([]);
+    setError('');
+    setSearched(false);
+    setCopied(false);
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }
+
   // When "Most recent post" is chosen, sort a copy by newest post first.
   const displayed =
     sortBy === 'recent'
@@ -237,17 +250,26 @@ export default function Home() {
                     <option value="recent">Most recent post</option>
                   </select>
                 </label>
-                <button
-                  onClick={copyShareLink}
-                  className="flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-orange-200 px-3 py-1.5 text-sm text-orange-700 transition hover:bg-orange-50"
-                >
-                  {copied ? (
-                    <Check className="h-4 w-4" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                  {copied ? 'Copied!' : 'Copy link'}
-                </button>
+                <div className="flex flex-shrink-0 items-center gap-2">
+                  <button
+                    onClick={clearAll}
+                    className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 transition hover:bg-gray-50"
+                  >
+                    <X className="h-4 w-4" />
+                    Clear all
+                  </button>
+                  <button
+                    onClick={copyShareLink}
+                    className="flex items-center gap-1.5 rounded-lg border border-orange-200 px-3 py-1.5 text-sm text-orange-700 transition hover:bg-orange-50"
+                  >
+                    {copied ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                    {copied ? 'Copied!' : 'Copy link'}
+                  </button>
+                </div>
               </div>
             </div>
 
