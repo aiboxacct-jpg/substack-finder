@@ -2,7 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { LogIn, LogOut, User, X, Loader2 } from 'lucide-react';
+import {
+  LogIn,
+  LogOut,
+  User,
+  X,
+  Loader2,
+  CreditCard,
+  Sparkles,
+} from 'lucide-react';
 
 // A small login/sign-up bar. Logged in: shows email + Log out. Logged out:
 // a "Log in / Sign up" button that opens a centered popup with the form.
@@ -14,6 +22,7 @@ export default function AuthBar() {
   const [password, setPassword] = useState('');
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
+  const [subscribed, setSubscribed] = useState(false);
 
   // Track the current session and keep it in sync.
   useEffect(() => {
@@ -26,6 +35,41 @@ export default function AuthBar() {
     });
     return () => sub.subscription.unsubscribe();
   }, []);
+
+  // When logged in, check whether this user is a paying subscriber.
+  useEffect(() => {
+    if (!user) {
+      setSubscribed(false);
+      return;
+    }
+    let active = true;
+    supabase
+      .from('profiles')
+      .select('is_subscribed')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (active) setSubscribed(!!data?.is_subscribed);
+      });
+    return () => {
+      active = false;
+    };
+  }, [user]);
+
+  // Send the user to Stripe checkout.
+  async function subscribe() {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) return;
+    const res = await fetch('/api/checkout', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    const data = await res.json();
+    if (data.url) window.location.href = data.url;
+    else alert(data.error || 'Could not start checkout. Please try again.');
+  }
 
   function closeModal() {
     setOpen(false);
@@ -73,6 +117,20 @@ export default function AuthBar() {
             <User className="h-4 w-4 text-gray-400" />
             {user.email}
           </span>
+          {subscribed ? (
+            <span className="flex items-center gap-1.5 rounded-lg bg-green-50 px-2.5 py-1 font-medium text-green-700">
+              <Sparkles className="h-3.5 w-3.5" />
+              Member
+            </span>
+          ) : (
+            <button
+              onClick={subscribe}
+              className="flex items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 font-medium text-white transition hover:bg-orange-600"
+            >
+              <CreditCard className="h-4 w-4" />
+              Subscribe
+            </button>
+          )}
           <button
             onClick={signOut}
             className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-gray-700 transition hover:bg-gray-50"
