@@ -120,9 +120,12 @@ export async function POST(request) {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
     const requestParams = {
-      model: 'claude-sonnet-4-6',
+      // Haiku 4.5 is ~3x cheaper than Sonnet ($1/$5 vs $3/$15 per M tokens).
+      // Haiku doesn't support the newer web_search_20260209, so we use the
+      // standard web_search_20250305 variant here.
+      model: 'claude-haiku-4-5',
       max_tokens: 2000,
-      tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 5 }],
+      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5 }],
       messages: [{ role: 'user', content: prompt }],
     };
 
