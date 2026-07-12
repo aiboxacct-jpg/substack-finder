@@ -46,9 +46,8 @@ export async function POST(request) {
     return Response.json({ url: session.url });
   } catch (err) {
     console.error('Checkout error:', err);
-    // Temporary: surface the real error so we can debug.
     return Response.json(
-      { error: `Checkout failed: ${err?.message || 'unknown error'}` },
+      { error: 'Could not start checkout. Please try again.' },
       { status: 500 }
     );
   }
