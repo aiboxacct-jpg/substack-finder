@@ -125,7 +125,7 @@ export async function POST(request) {
       // standard web_search_20250305 variant here.
       model: 'claude-haiku-4-5',
       max_tokens: 2000,
-      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5 }],
+      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 2 }],
       messages: [{ role: 'user', content: prompt }],
     };
 
@@ -175,7 +175,8 @@ export async function POST(request) {
       });
     }
 
-    return Response.json({ results });
+    // Temporary: expose token usage so we can measure real per-search cost.
+    return Response.json({ results, usage: response.usage });
   } catch (err) {
     console.error('Search error:', err);
 
