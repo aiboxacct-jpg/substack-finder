@@ -11,6 +11,7 @@ import {
   CreditCard,
   Sparkles,
 } from 'lucide-react';
+import ProfileModal from './ProfileModal';
 
 // A small login/sign-up bar. Logged in: shows email + Log out. Logged out:
 // a "Log in / Sign up" button that opens a centered popup with the form.
@@ -23,6 +24,7 @@ export default function AuthBar() {
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
 
   // Track the current session and keep it in sync.
   useEffect(() => {
@@ -113,10 +115,14 @@ export default function AuthBar() {
       {/* The bar itself */}
       {user ? (
         <div className="flex items-center justify-end gap-3 text-sm">
-          <span className="flex items-center gap-1.5 text-gray-600">
+          <button
+            onClick={() => setShowProfile(true)}
+            title="Your account"
+            className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-gray-600 transition hover:bg-gray-100"
+          >
             <User className="h-4 w-4 text-gray-400" />
             {user.email}
-          </span>
+          </button>
           {subscribed ? (
             <span className="flex items-center gap-1.5 rounded-lg bg-green-50 px-2.5 py-1 font-medium text-green-700">
               <Sparkles className="h-3.5 w-3.5" />
@@ -217,6 +223,14 @@ export default function AuthBar() {
           </form>
         </div>
       )}
+
+      <ProfileModal
+        open={showProfile}
+        onClose={() => setShowProfile(false)}
+        user={user}
+        subscribed={subscribed}
+        onSubscribe={subscribe}
+      />
     </>
   );
 }
