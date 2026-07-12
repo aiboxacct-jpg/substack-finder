@@ -94,12 +94,17 @@ export default function ProfileModal({ open, onClose, user, subscribed, onSubscr
                   Member
                 </span>
               ) : (
-                <button
-                  onClick={onSubscribe}
-                  className="flex-shrink-0 rounded-lg border border-orange-300 px-2.5 py-1 text-xs font-medium text-orange-700 transition hover:bg-orange-50"
-                >
-                  Free · Upgrade
-                </button>
+                <div className="flex flex-shrink-0 items-center gap-2">
+                  <span className="rounded-lg bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-500">
+                    Free
+                  </span>
+                  <button
+                    onClick={onSubscribe}
+                    className="rounded-lg bg-orange-500 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-orange-600"
+                  >
+                    Upgrade
+                  </button>
+                </div>
               )}
             </div>
           ))}
