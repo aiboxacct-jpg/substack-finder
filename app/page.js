@@ -14,6 +14,7 @@ import {
   X,
 } from 'lucide-react';
 import AuthBar from './AuthBar';
+import { supabase } from '@/lib/supabase';
 
 // The "starter topic" pill buttons shown under the search box.
 const STARTER_TOPICS = [
@@ -74,9 +75,17 @@ export default function Home() {
     }
 
     try {
+      // Include the login token so the server knows if this is a member.
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const headers = { 'Content-Type': 'application/json' };
+      if (session?.access_token) {
+        headers.Authorization = `Bearer ${session.access_token}`;
+      }
       const res = await fetch('/api/search', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ topic: t }),
       });
       const data = await res.json();

@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { checkRateLimit, checkDailyCap } from '@/lib/rateLimit';
+import { checkDailyCap, checkFreeDailyLimit } from '@/lib/rateLimit';
+import { createClient } from '@supabase/supabase-js';
 
 // Simple in-memory cache: a topic's results are reused for 24 hours so repeat
 // (and popular) searches return instantly and cost nothing. Like the rate
@@ -62,33 +63,79 @@ async function enrichWithLatestPosts(results) {
   return results;
 }
 
+// Figure out who's calling and whether they're a paying member.
+async function getMembership(token) {
+  if (!token) return { user: null, isMember: false };
+  try {
+    const anon = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    );
+    const {
+      data: { user },
+    } = await anon.auth.getUser(token);
+    if (!user) return { user: null, isMember: false };
+
+    const admin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+    const { data } = await admin
+      .from('profiles')
+      .select('is_subscribed')
+      .eq('id', user.id)
+      .single();
+    return { user, isMember: !!data?.is_subscribed };
+  } catch {
+    return { user: null, isMember: false };
+  }
+}
+
 // This runs ONLY on the server, so the API key is never sent to the browser.
 export async function POST(request) {
   try {
-    // 1. Rate limit by visitor IP so a public visitor can't run up the bill.
     const ip =
       (request.headers.get('x-forwarded-for') || '').split(',')[0].trim() ||
       'unknown';
-    const limit = checkRateLimit(ip);
-    if (!limit.allowed) {
-      const minutes = Math.max(1, Math.ceil(limit.retryAfterSeconds / 60));
-      return Response.json(
-        {
-          error: `You've reached the search limit. Please try again in about ${minutes} minute${
-            minutes === 1 ? '' : 's'
-          }.`,
-        },
-        { status: 429 }
-      );
-    }
+    const token = (request.headers.get('authorization') || '').replace('Bearer ', '');
 
-    // 2. Read and validate the topic from the request body.
+    // Read and validate the topic from the request body.
     const { topic } = await request.json();
     if (!topic || !topic.trim()) {
       return Response.json({ error: 'Please enter a topic.' }, { status: 400 });
     }
 
-    // 3. Serve from cache if we've searched this topic recently (instant, free).
+    // Members get unlimited searches; free/anonymous users get a small taste.
+    const { user, isMember } = await getMembership(token);
+    if (!isMember) {
+      const identity = user?.id || ip;
+      const free = checkFreeDailyLimit(identity);
+      if (!free.allowed) {
+        return Response.json(
+          {
+            error: user
+              ? "You've used your free searches for today. Upgrade to a Stack Tools membership for unlimited searches."
+              : "You've reached today's free search limit. Sign up and upgrade for unlimited searches.",
+            upgrade: true,
+          },
+          { status: 429 }
+        );
+      }
+      // Site-wide backstop so the free tier can't spike the bill.
+      const daily = checkDailyCap();
+      if (!daily.allowed) {
+        return Response.json(
+          {
+            error:
+              'This site has hit its daily free-search limit. Please check back tomorrow — or upgrade for unlimited searches.',
+            upgrade: true,
+          },
+          { status: 429 }
+        );
+      }
+    }
+
+    // Serve from cache if we've searched this topic recently (instant, free).
     const cacheKey = topic.trim().toLowerCase();
     const cached = searchCache.get(cacheKey);
     if (cached && cached.expires > Date.now()) {
@@ -102,19 +149,7 @@ export async function POST(request) {
       );
     }
 
-    // 4. Site-wide daily cap: a safety net so total searches can't spike the bill.
-    const daily = checkDailyCap();
-    if (!daily.allowed) {
-      return Response.json(
-        {
-          error:
-            'This site has reached its daily search limit. Please check back tomorrow.',
-        },
-        { status: 429 }
-      );
-    }
-
-    // 5. The prompt sent to Claude (kept from the prototype).
+    // The prompt sent to Claude (kept from the prototype).
     const prompt = `Use web search to find real, currently-active Substack newsletters about: "${topic}". Try queries like "${topic} site:substack.com" and "best ${topic} substack newsletters" and return the 6 most relevant. Respond with ONLY a raw JSON array (no markdown, no backticks). Each object: "name", "author" (use "" if unknown), "url" (real Substack URL, do not invent), "description" (one sentence, max ~18 words), "tag" (1-3 word category or vibe, e.g. "beginner-friendly", "deep dives", "weekly"). Only include newsletters found via search.`;
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
