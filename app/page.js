@@ -12,6 +12,7 @@ import {
   FileText,
   ArrowUpDown,
 } from 'lucide-react';
+import AuthBar from './AuthBar';
 
 // The "starter topic" pill buttons shown under the search box.
 const STARTER_TOPICS = [
@@ -145,6 +146,11 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-orange-50 to-white px-4 py-12">
       <div className="mx-auto max-w-2xl">
+        {/* Login / sign-up bar */}
+        <div className="mb-6">
+          <AuthBar />
+        </div>
+
         {/* Heading */}
         <header className="mb-8 text-center">
           <h1 className="text-4xl font-bold tracking-tight text-gray-900">

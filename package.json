@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": ">=0.40.0",
+    "@supabase/supabase-js": "^2.110.2",
     "lucide-react": ">=0.400.0",
     "next": "^15.1.0",
     "react": "^19.0.0",
