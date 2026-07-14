@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import {
   LogIn,
@@ -28,6 +28,7 @@ export default function AuthBar() {
   const [subscribed, setSubscribed] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showMembership, setShowMembership] = useState(false);
+  const upgradeTriggered = useRef(false);
 
   // Let other parts of the page (e.g. the daily-limit banner) open the
   // membership modal by dispatching a window "open-membership" event.
@@ -70,19 +71,20 @@ export default function AuthBar() {
   }, [user]);
 
   // If a "paid signup" was started but email confirmation interrupted it,
-  // resume checkout automatically once the confirmed user lands back logged in.
+  // resume checkout automatically once the confirmed user is logged in. The
+  // intent lives on the account (user metadata), so this works on any device.
   useEffect(() => {
     if (!user || subscribed) return;
-    let pending = false;
-    try {
-      pending = localStorage.getItem('pendingUpgrade') === '1';
-    } catch {}
-    if (pending) {
+    if (!user.user_metadata?.wants_paid) return;
+    if (upgradeTriggered.current) return;
+    upgradeTriggered.current = true;
+    (async () => {
+      // Clear the intent first so a cancelled checkout doesn't loop back here.
       try {
-        localStorage.removeItem('pendingUpgrade');
+        await supabase.auth.updateUser({ data: { wants_paid: false } });
       } catch {}
       subscribe();
-    }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, subscribed]);
 

@@ -68,16 +68,19 @@ export default function MembershipModal({
     setAuthMsg('');
     if (!validCreds()) return;
     setAuthBusy(true);
-    try {
-      localStorage.setItem('pendingUpgrade', '1');
-    } catch {}
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    // Record the paid intent ON THE ACCOUNT (user metadata) so checkout resumes
+    // once they confirm their email or sign in — on any device, any time.
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { wants_paid: true } },
+    });
     setAuthBusy(false);
     if (error) {
       setAuthMsg(error.message);
     } else if (!data.session) {
       setAuthMsg(
-        "Account created! Confirm your email, then sign in — you'll go straight to checkout."
+        "Account created! Check your email to confirm — then you'll be taken straight to checkout."
       );
     } else {
       onUpgrade();
@@ -97,17 +100,8 @@ export default function MembershipModal({
       setAuthMsg(error.message);
       return;
     }
-    // Signed in — the modal re-renders to the logged-in "Upgrade" state.
-    let pending = false;
-    try {
-      pending = localStorage.getItem('pendingUpgrade') === '1';
-    } catch {}
-    if (pending) {
-      try {
-        localStorage.removeItem('pendingUpgrade');
-      } catch {}
-      onUpgrade();
-    }
+    // Signed in — the modal re-renders to the logged-in "Upgrade" state, and if
+    // this account intended to go paid, AuthBar resumes checkout automatically.
   }
 
   const perks = [
