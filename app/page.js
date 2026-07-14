@@ -14,8 +14,10 @@ import {
   X,
   Bookmark,
   BookmarkCheck,
+  Sparkles,
 } from 'lucide-react';
 import AuthBar from './AuthBar';
+import SubmitModal from './SubmitModal';
 import { supabase } from '@/lib/supabase';
 
 // The "starter topic" pill buttons shown under the search box.
@@ -53,6 +55,7 @@ function relativeTime(iso) {
 export default function Home() {
   const [topic, setTopic] = useState('');
   const [results, setResults] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searched, setSearched] = useState(false);
@@ -100,6 +103,7 @@ export default function Home() {
     setLoading(true);
     setError('');
     setResults([]);
+    setSubmissions([]);
     setSearched(true);
 
     // Reflect the current topic in the URL so it can be copied/shared.
@@ -123,6 +127,9 @@ export default function Home() {
       });
       const data = await res.json();
 
+      // Approved creator submissions come back alongside the AI results
+      // (and even on some error responses), so surface them either way.
+      setSubmissions(data.submissions || []);
       if (!res.ok || data.error) {
         setError(data.error || 'Something went wrong. Please try again.');
       } else {
@@ -180,6 +187,7 @@ export default function Home() {
   function clearAll() {
     setTopic('');
     setResults([]);
+    setSubmissions([]);
     setError('');
     setSearched(false);
     setCopied(false);
@@ -415,12 +423,62 @@ export default function Home() {
           </>
         )}
 
-        {/* Empty state after a search returns nothing */}
-        {!loading && !error && searched && results.length === 0 && (
-          <p className="py-12 text-center text-gray-500">
-            No newsletters found. Try a different topic.
-          </p>
+        {/* Creator-submitted newsletters that match this topic (admin-approved) */}
+        {!loading && submissions.length > 0 && (
+          <div className="mt-8">
+            <div className="mb-3 flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-orange-500" />
+              <h3 className="text-sm font-semibold text-gray-700">
+                Submitted by creators
+              </h3>
+            </div>
+            <div className="space-y-4">
+              {submissions.map((s, i) => (
+                <div
+                  key={i}
+                  className="group rounded-2xl border border-orange-200 bg-orange-50/40 p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-orange-300 hover:shadow-md"
+                >
+                  <a
+                    href={s.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-start justify-between gap-3"
+                  >
+                    <h2 className="text-lg font-semibold text-gray-900 group-hover:text-orange-600">
+                      {s.name}
+                    </h2>
+                    <ExternalLink className="mt-1 h-4 w-4 flex-shrink-0 text-gray-400 group-hover:text-orange-500" />
+                  </a>
+                  {s.description && (
+                    <p className="mt-2 text-sm text-gray-600">{s.description}</p>
+                  )}
+                  {s.tags && (
+                    <span className="mt-3 inline-block rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-700">
+                      {s.tags}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         )}
+
+        {/* Empty state after a search returns nothing */}
+        {!loading &&
+          !error &&
+          searched &&
+          results.length === 0 &&
+          submissions.length === 0 && (
+            <p className="py-12 text-center text-gray-500">
+              No newsletters found. Try a different topic.
+            </p>
+          )}
+
+        {/* Footer: let creators add their own newsletter */}
+        <div className="mt-14 flex flex-col items-center gap-2 border-t border-orange-100 pt-8 text-center">
+          <p className="text-sm text-gray-500">Write a Substack? Get it in front of readers.</p>
+          <SubmitModal />
+        </div>
       </div>
     </main>
   );

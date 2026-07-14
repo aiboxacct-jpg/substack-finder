@@ -63,6 +63,40 @@ async function enrichWithLatestPosts(results) {
   return results;
 }
 
+// Fetch admin-approved, creator-submitted newsletters that match this topic.
+// Matching is a simple case-insensitive word overlap against each submission's
+// name/description/tags — cheap and predictable at small scale. Read fresh on
+// every search (not cached) so a newly approved submission appears right away.
+async function getMatchingSubmissions(topic) {
+  try {
+    const admin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+    const { data } = await admin
+      .from('submissions')
+      .select('name, url, description, tags')
+      .eq('status', 'approved')
+      .order('created_at', { ascending: false });
+    if (!data || data.length === 0) return [];
+
+    const words = topic
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter((w) => w.length >= 3);
+    if (words.length === 0) return [];
+
+    return data
+      .filter((s) => {
+        const hay = `${s.name} ${s.description} ${s.tags || ''}`.toLowerCase();
+        return words.some((w) => hay.includes(w));
+      })
+      .slice(0, 5);
+  } catch {
+    return [];
+  }
+}
+
 // Figure out who's calling and whether they're a paying member.
 async function getMembership(token) {
   if (!token) return { user: null, isMember: false };
@@ -135,11 +169,14 @@ export async function POST(request) {
       }
     }
 
+    // Creator submissions are read fresh (cheap) so approvals show immediately.
+    const submissions = await getMatchingSubmissions(topic);
+
     // Serve from cache if we've searched this topic recently (instant, free).
     const cacheKey = topic.trim().toLowerCase();
     const cached = searchCache.get(cacheKey);
     if (cached && cached.expires > Date.now()) {
-      return Response.json({ results: cached.results, cached: true });
+      return Response.json({ results: cached.results, submissions, cached: true });
     }
 
     if (!process.env.ANTHROPIC_API_KEY) {
@@ -187,7 +224,7 @@ export async function POST(request) {
     const end = cleaned.lastIndexOf(']');
 
     if (start === -1 || end === -1) {
-      return Response.json({ results: [] });
+      return Response.json({ results: [], submissions });
     }
 
     let results;
@@ -195,7 +232,7 @@ export async function POST(request) {
       results = JSON.parse(cleaned.slice(start, end + 1));
     } catch {
       return Response.json(
-        { error: 'Could not read the results. Please try again.' },
+        { error: 'Could not read the results. Please try again.', submissions },
         { status: 200 }
       );
     }
@@ -210,7 +247,7 @@ export async function POST(request) {
       });
     }
 
-    return Response.json({ results });
+    return Response.json({ results, submissions });
   } catch (err) {
     console.error('Search error:', err);
 
