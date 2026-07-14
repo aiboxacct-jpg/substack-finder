@@ -42,11 +42,6 @@ export default function MembershipModal({
       title: 'Email me these (coming soon)',
       desc: 'Get fresh newsletters for your saved topics in your inbox.',
     },
-    {
-      icon: Rocket,
-      title: 'Every Stack Tool included',
-      desc: 'One membership unlocks all current & future tools.',
-    },
   ];
 
   return (
@@ -82,6 +77,32 @@ export default function MembershipModal({
 
         {/* Perks */}
         <div className="px-6 py-5">
+          {/* Headline perk — one membership unlocks everything */}
+          <div className="mb-4 rounded-xl border-2 border-orange-300 bg-gradient-to-br from-orange-50 to-white p-4">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-orange-500">
+                <Rocket className="h-4 w-4 text-white" />
+              </span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-bold text-gray-900">
+                    Every Stack Tool included
+                  </p>
+                  <span className="rounded-full bg-orange-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                    Best value
+                  </span>
+                </div>
+                <p className="mt-0.5 text-xs text-gray-600">
+                  One membership unlocks{' '}
+                  <span className="font-semibold text-orange-700">
+                    all current &amp; future Stack Tools
+                  </span>{' '}
+                  — pay once, get everything.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <ul className="space-y-3">
             {perks.map((p, i) => (
               <li key={i} className="flex items-start gap-3">
