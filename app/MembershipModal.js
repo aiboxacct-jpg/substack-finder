@@ -54,11 +54,11 @@ export default function MembershipModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="relative bg-gradient-to-br from-orange-500 to-orange-400 px-6 py-5 text-white">
+        <div className="relative bg-gradient-to-br from-orange-500 to-orange-400 px-6 py-5 text-gray-900">
           <button
             onClick={onClose}
             aria-label="Close"
-            className="absolute right-3 top-3 rounded-md p-1 text-white/80 transition hover:bg-white/20 hover:text-white"
+            className="absolute right-3 top-3 rounded-md p-1 text-gray-700 transition hover:bg-black/10 hover:text-gray-900"
           >
             <X className="h-5 w-5" />
           </button>
@@ -66,12 +66,12 @@ export default function MembershipModal({
             <Sparkles className="h-5 w-5" />
             <h2 className="text-lg font-bold">Stack Tools Membership</h2>
           </div>
-          <p className="mt-1 text-sm text-white/90">
+          <p className="mt-1 text-sm text-gray-800">
             One subscription. Unlimited everything.
           </p>
           <div className="mt-3 flex items-baseline gap-1">
             <span className="text-3xl font-extrabold">$9.99</span>
-            <span className="text-sm text-white/90">/month</span>
+            <span className="text-sm text-gray-800">/month</span>
           </div>
         </div>
 
