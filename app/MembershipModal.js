@@ -1,7 +1,18 @@
 'use client';
 
-import { Sparkles, X, Check, Search, Bookmark, Mail, Rocket, Loader2 } from 'lucide-react';
+import {
+  Sparkles,
+  X,
+  Check,
+  Search,
+  Bookmark,
+  Mail,
+  Rocket,
+  Loader2,
+  LogIn,
+} from 'lucide-react';
 import { useState } from 'react';
+import { supabase } from '@/lib/supabase';
 
 // The "here's what you get" upsell. Opened from the Subscribe button, a
 // discoverable "Membership" link, and when a free user hits their daily limit.
@@ -15,6 +26,10 @@ export default function MembershipModal({
   onLoginRequest,
 }) {
   const [busy, setBusy] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authBusy, setAuthBusy] = useState(false);
+  const [authMsg, setAuthMsg] = useState('');
   if (!open) return null;
 
   async function handleUpgrade() {
@@ -23,6 +38,75 @@ export default function MembershipModal({
       await onUpgrade();
     } finally {
       setBusy(false);
+    }
+  }
+
+  function validCreds() {
+    if (!email || password.length < 6) {
+      setAuthMsg('Enter an email and a password (at least 6 characters).');
+      return false;
+    }
+    return true;
+  }
+
+  // Free signup: just create the account.
+  async function freeSignUp() {
+    setAuthMsg('');
+    if (!validCreds()) return;
+    setAuthBusy(true);
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    setAuthBusy(false);
+    if (error) setAuthMsg(error.message);
+    else if (!data.session)
+      setAuthMsg('Account created! Check your email to confirm, then sign in.');
+  }
+
+  // Paid signup: create the account, then head to checkout. If email
+  // confirmation is required, we flag the intent so checkout resumes
+  // automatically once they confirm and sign in.
+  async function paidSignUp() {
+    setAuthMsg('');
+    if (!validCreds()) return;
+    setAuthBusy(true);
+    try {
+      localStorage.setItem('pendingUpgrade', '1');
+    } catch {}
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    setAuthBusy(false);
+    if (error) {
+      setAuthMsg(error.message);
+    } else if (!data.session) {
+      setAuthMsg(
+        "Account created! Confirm your email, then sign in — you'll go straight to checkout."
+      );
+    } else {
+      onUpgrade();
+    }
+  }
+
+  async function signIn() {
+    setAuthMsg('');
+    if (!email || !password) {
+      setAuthMsg('Enter your email and password.');
+      return;
+    }
+    setAuthBusy(true);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setAuthBusy(false);
+    if (error) {
+      setAuthMsg(error.message);
+      return;
+    }
+    // Signed in — the modal re-renders to the logged-in "Upgrade" state.
+    let pending = false;
+    try {
+      pending = localStorage.getItem('pendingUpgrade') === '1';
+    } catch {}
+    if (pending) {
+      try {
+        localStorage.removeItem('pendingUpgrade');
+      } catch {}
+      onUpgrade();
     }
   }
 
@@ -138,15 +222,48 @@ export default function MembershipModal({
                 Upgrade to Member — $9.99/mo
               </button>
             ) : (
-              <button
-                onClick={() => {
-                  onClose();
-                  onLoginRequest && onLoginRequest();
-                }}
-                className="w-full rounded-xl bg-orange-500 px-4 py-3 text-sm font-semibold text-gray-900 transition hover:bg-orange-600"
-              >
-                Sign up to become a member
-              </button>
+              <div className="space-y-2">
+                <input
+                  type="email"
+                  placeholder="you@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-orange-400"
+                />
+                <input
+                  type="password"
+                  placeholder="password (min 6 characters)"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-orange-400"
+                />
+
+                {authMsg && <p className="text-xs text-gray-600">{authMsg}</p>}
+
+                <button
+                  onClick={paidSignUp}
+                  disabled={authBusy}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-orange-500 px-4 py-3 text-sm font-semibold text-gray-900 transition hover:bg-orange-600 disabled:opacity-60"
+                >
+                  {authBusy && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Sign up to become a paid member
+                </button>
+                <button
+                  onClick={freeSignUp}
+                  disabled={authBusy}
+                  className="w-full rounded-xl bg-orange-500 px-4 py-3 text-sm font-semibold text-gray-900 transition hover:bg-orange-600 disabled:opacity-60"
+                >
+                  FREE sign up!
+                </button>
+                <button
+                  onClick={signIn}
+                  disabled={authBusy}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-orange-300 px-4 py-2.5 text-sm font-medium text-orange-700 transition hover:bg-orange-50 disabled:opacity-60"
+                >
+                  <LogIn className="h-4 w-4" />
+                  Already have an account? Sign in
+                </button>
+              </div>
             )}
           </div>
         </div>

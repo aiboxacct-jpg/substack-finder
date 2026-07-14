@@ -69,6 +69,23 @@ export default function AuthBar() {
     };
   }, [user]);
 
+  // If a "paid signup" was started but email confirmation interrupted it,
+  // resume checkout automatically once the confirmed user lands back logged in.
+  useEffect(() => {
+    if (!user || subscribed) return;
+    let pending = false;
+    try {
+      pending = localStorage.getItem('pendingUpgrade') === '1';
+    } catch {}
+    if (pending) {
+      try {
+        localStorage.removeItem('pendingUpgrade');
+      } catch {}
+      subscribe();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, subscribed]);
+
   // Send the user to Stripe checkout.
   async function subscribe() {
     const {
