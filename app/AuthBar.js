@@ -13,6 +13,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import ProfileModal from './ProfileModal';
+import MembershipModal from './MembershipModal';
 
 // A small login/sign-up bar. Logged in: shows email + Log out. Logged out:
 // a "Log in / Sign up" button that opens a centered popup with the form.
@@ -26,6 +27,15 @@ export default function AuthBar() {
   const [busy, setBusy] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showMembership, setShowMembership] = useState(false);
+
+  // Let other parts of the page (e.g. the daily-limit banner) open the
+  // membership modal by dispatching a window "open-membership" event.
+  useEffect(() => {
+    const handler = () => setShowMembership(true);
+    window.addEventListener('open-membership', handler);
+    return () => window.removeEventListener('open-membership', handler);
+  }, []);
 
   // Track the current session and keep it in sync.
   useEffect(() => {
@@ -132,7 +142,7 @@ export default function AuthBar() {
             </span>
           ) : (
             <button
-              onClick={subscribe}
+              onClick={() => setShowMembership(true)}
               className="flex items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 font-medium text-white transition hover:bg-orange-600"
             >
               <CreditCard className="h-4 w-4" />
@@ -148,7 +158,14 @@ export default function AuthBar() {
           </button>
         </div>
       ) : (
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-end gap-2">
+          <button
+            onClick={() => setShowMembership(true)}
+            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-orange-700 transition hover:bg-orange-50"
+          >
+            <Sparkles className="h-4 w-4" />
+            Membership
+          </button>
           <button
             onClick={() => setOpen(true)}
             className="flex items-center gap-1.5 rounded-lg border border-orange-200 px-3 py-1.5 text-sm text-orange-700 transition hover:bg-orange-50"
@@ -232,6 +249,15 @@ export default function AuthBar() {
         user={user}
         subscribed={subscribed}
         onSubscribe={subscribe}
+      />
+
+      <MembershipModal
+        open={showMembership}
+        onClose={() => setShowMembership(false)}
+        loggedIn={!!user}
+        subscribed={subscribed}
+        onUpgrade={subscribe}
+        onLoginRequest={() => setOpen(true)}
       />
     </>
   );

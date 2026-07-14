@@ -58,6 +58,7 @@ export default function Home() {
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [upgrade, setUpgrade] = useState(false);
   const [searched, setSearched] = useState(false);
   const [copied, setCopied] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState(0);
@@ -102,6 +103,7 @@ export default function Home() {
     setTopic(t);
     setLoading(true);
     setError('');
+    setUpgrade(false);
     setResults([]);
     setSubmissions([]);
     setSearched(true);
@@ -132,6 +134,7 @@ export default function Home() {
       setSubmissions(data.submissions || []);
       if (!res.ok || data.error) {
         setError(data.error || 'Something went wrong. Please try again.');
+        setUpgrade(!!data.upgrade);
       } else {
         setResults(data.results || []);
       }
@@ -288,8 +291,24 @@ export default function Home() {
           </div>
         )}
 
-        {/* Error banner */}
-        {error && !loading && (
+        {/* Daily-limit upsell (a nudge, not an error) */}
+        {error && upgrade && !loading && (
+          <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
+            <div className="flex items-start gap-3 text-orange-800">
+              <Sparkles className="mt-0.5 h-5 w-5 flex-shrink-0 text-orange-500" />
+              <p className="text-sm">{error}</p>
+            </div>
+            <button
+              onClick={() => window.dispatchEvent(new Event('open-membership'))}
+              className="mt-3 w-full rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
+            >
+              See what Membership includes
+            </button>
+          </div>
+        )}
+
+        {/* Regular error banner */}
+        {error && !upgrade && !loading && (
           <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
             <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0" />
             <p className="text-sm">{error}</p>
