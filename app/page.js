@@ -235,6 +235,9 @@ export default function Home() {
           <p className="mt-3 text-gray-600">
             Type a topic and discover real Substack newsletters worth reading.
           </p>
+          <div className="mt-4 flex justify-center">
+            <SubmitModal />
+          </div>
         </header>
 
         {/* Search box with search-icon button */}
@@ -473,12 +476,6 @@ export default function Home() {
               No newsletters found. Try a different topic.
             </p>
           )}
-
-        {/* Footer: let creators add their own newsletter */}
-        <div className="mt-14 flex flex-col items-center gap-2 border-t border-orange-100 pt-8 text-center">
-          <p className="text-sm text-gray-500">Write a Substack? Get it in front of readers.</p>
-          <SubmitModal />
-        </div>
       </div>
     </main>
   );
