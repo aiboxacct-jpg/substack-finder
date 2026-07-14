@@ -132,7 +132,7 @@ export default function MembershipModal({
               <button
                 onClick={handleUpgrade}
                 disabled={busy}
-                className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-orange-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:opacity-60"
+                className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-orange-500 px-4 py-3 text-sm font-semibold text-gray-900 transition hover:bg-orange-600 disabled:opacity-60"
               >
                 {busy && <Loader2 className="h-4 w-4 animate-spin" />}
                 Upgrade to Member — $9.99/mo
@@ -143,7 +143,7 @@ export default function MembershipModal({
                   onClose();
                   onLoginRequest && onLoginRequest();
                 }}
-                className="w-full rounded-xl bg-orange-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-orange-600"
+                className="w-full rounded-xl bg-orange-500 px-4 py-3 text-sm font-semibold text-gray-900 transition hover:bg-orange-600"
               >
                 Sign up to become a member
               </button>
