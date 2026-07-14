@@ -175,20 +175,13 @@ export default function AuthBar() {
           </button>
         </div>
       ) : (
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex items-center justify-end">
           <button
             onClick={() => setShowMembership(true)}
-            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-orange-700 transition hover:bg-orange-50"
-          >
-            <Sparkles className="h-4 w-4" />
-            Membership
-          </button>
-          <button
-            onClick={() => setOpen(true)}
-            className="flex items-center gap-1.5 rounded-lg border border-orange-200 px-3 py-1.5 text-sm text-orange-700 transition hover:bg-orange-50"
+            className="flex items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-orange-600"
           >
             <LogIn className="h-4 w-4" />
-            Log in / Sign up
+            FREE Sign Up | Login
           </button>
         </div>
       )}
