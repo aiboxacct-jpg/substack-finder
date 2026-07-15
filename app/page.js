@@ -15,6 +15,7 @@ import {
   Bookmark,
   BookmarkCheck,
   Sparkles,
+  Mail,
 } from 'lucide-react';
 import AuthBar from './AuthBar';
 import { supabase } from '@/lib/supabase';
@@ -39,6 +40,17 @@ function relativeTime(iso) {
   if (diff < 30 * day) return `${Math.floor(diff / day)}d ago`;
   if (diff < 365 * day) return `${Math.floor(diff / (30 * day))}mo ago`;
   return `${Math.floor(diff / (365 * day))}y ago`;
+}
+
+// A newsletter's About page — where writers list contact info + the follow /
+// message options. Substack has no public per-writer DM link, so this is the
+// reliable place to reach out from.
+function aboutUrl(url) {
+  try {
+    return new URL(url).origin + '/about';
+  } catch {
+    return url;
+  }
 }
 
 export default function Home() {
@@ -384,6 +396,17 @@ export default function Home() {
                       {r.tag}
                     </span>
                   )}
+                  <div className="mt-3">
+                    <a
+                      href={aboutUrl(r.url)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-orange-200 px-3 py-1.5 text-xs font-medium text-orange-700 transition hover:bg-orange-50"
+                    >
+                      <Mail className="h-3.5 w-3.5" />
+                      Contact
+                    </a>
+                  </div>
                   {r.latestPosts && r.latestPosts.length > 0 && (
                     <div className="mt-3 space-y-1.5 border-t border-gray-100 pt-3">
                       {r.latestPosts.slice(0, 2).map((p, j) => {
