@@ -61,32 +61,6 @@ export default function MembershipModal({
       setAuthMsg('Account created! Check your email to confirm, then sign in.');
   }
 
-  // Paid signup: create the account, then head to checkout. If email
-  // confirmation is required, we flag the intent so checkout resumes
-  // automatically once they confirm and sign in.
-  async function paidSignUp() {
-    setAuthMsg('');
-    if (!validCreds()) return;
-    setAuthBusy(true);
-    // Record the paid intent ON THE ACCOUNT (user metadata) so checkout resumes
-    // once they confirm their email or sign in — on any device, any time.
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { wants_paid: true } },
-    });
-    setAuthBusy(false);
-    if (error) {
-      setAuthMsg(error.message);
-    } else if (!data.session) {
-      setAuthMsg(
-        "Account created! Check your email to confirm — then you'll be taken straight to checkout."
-      );
-    } else {
-      onUpgrade();
-    }
-  }
-
   async function signIn() {
     setAuthMsg('');
     if (!email || !password) {
@@ -235,19 +209,12 @@ export default function MembershipModal({
                 {authMsg && <p className="text-xs text-gray-600">{authMsg}</p>}
 
                 <button
-                  onClick={paidSignUp}
+                  onClick={freeSignUp}
                   disabled={authBusy}
                   className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-orange-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-orange-600 disabled:opacity-60"
                 >
                   {authBusy && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Sign up to become a paid member
-                </button>
-                <button
-                  onClick={freeSignUp}
-                  disabled={authBusy}
-                  className="w-full rounded-xl bg-orange-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-orange-600 disabled:opacity-60"
-                >
-                  FREE sign up!
+                  Sign up Free
                 </button>
                 <button
                   onClick={signIn}
@@ -255,7 +222,7 @@ export default function MembershipModal({
                   className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-orange-300 px-4 py-2.5 text-sm font-medium text-orange-700 transition hover:bg-orange-50 disabled:opacity-60"
                 >
                   <LogIn className="h-4 w-4" />
-                  Already have an account? Sign in
+                  Log in
                 </button>
               </div>
             )}
