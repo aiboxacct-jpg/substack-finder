@@ -97,6 +97,20 @@ async function getMatchingSubmissions(topic) {
   }
 }
 
+// Record a match search so the admin can see which Substacks people are
+// matching. Fire-and-forget: never let a logging hiccup break a search.
+async function logSearch(topic, email) {
+  try {
+    const admin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+    await admin.from('searches').insert({ topic, email: email || null });
+  } catch {
+    // logging is best-effort
+  }
+}
+
 // Figure out who's calling and whether they're a paying member.
 async function getMembership(token) {
   if (!token) return { user: null, isMember: false };
@@ -168,6 +182,9 @@ export async function POST(request) {
         );
       }
     }
+
+    // Log this match so the admin dashboard can show who's matching what.
+    await logSearch(topic.trim(), user?.email);
 
     // Creator submissions are read fresh (cheap) so approvals show immediately.
     const submissions = await getMatchingSubmissions(topic);

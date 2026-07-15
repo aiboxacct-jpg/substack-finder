@@ -9,11 +9,7 @@ import {
   Loader2,
   Lock,
   LogOut,
-  Check,
-  X,
-  Trash2,
-  ExternalLink,
-  Inbox,
+  Search,
 } from 'lucide-react';
 
 function fmtDate(iso) {
@@ -27,11 +23,22 @@ function fmtDate(iso) {
   });
 }
 
+function fmtDateTime(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 export default function AdminPage() {
   const [status, setStatus] = useState('loading'); // loading | needlogin | denied | error | ready
   const [data, setData] = useState(null);
-  const [subs, setSubs] = useState([]);
-  const [subBusy, setSubBusy] = useState(null); // id currently being acted on
+  const [searches, setSearches] = useState([]);
 
   // Login form
   const [email, setEmail] = useState('');
@@ -65,40 +72,21 @@ export default function AdminPage() {
     }
     setData(await res.json());
     setStatus('ready');
-    loadSubs();
+    loadSearches();
   }
 
-  async function loadSubs() {
+  async function loadSearches() {
     const {
       data: { session },
     } = await supabase.auth.getSession();
     if (!session) return;
-    const res = await fetch('/api/admin/submissions', {
+    const res = await fetch('/api/admin/searches', {
       headers: { Authorization: `Bearer ${session.access_token}` },
     });
     if (res.ok) {
       const d = await res.json();
-      setSubs(d.submissions || []);
+      setSearches(d.searches || []);
     }
-  }
-
-  async function actOnSub(id, action) {
-    setSubBusy(id);
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (session) {
-      await fetch('/api/admin/submissions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ id, action }),
-      });
-      await loadSubs();
-    }
-    setSubBusy(null);
   }
 
   useEffect(() => {
@@ -210,7 +198,9 @@ export default function AdminPage() {
         <div className="flex items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Stack Tools — Admin</h1>
-            <p className="mt-1 text-sm text-gray-500">Signups &amp; subscription status.</p>
+            <p className="mt-1 text-sm text-gray-500">
+              Signups, subscriptions &amp; match searches.
+            </p>
           </div>
           <button
             onClick={logout}
@@ -284,102 +274,47 @@ export default function AdminPage() {
           </table>
         </div>
 
-        {/* Creator submissions */}
+        {/* Match searches */}
         <div className="mt-10">
-          <div className="mb-3 flex items-center gap-2">
-            <Inbox className="h-5 w-5 text-gray-500" />
-            <h2 className="text-lg font-semibold text-gray-900">Submissions</h2>
-            {subs.filter((s) => s.status === 'pending').length > 0 && (
-              <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">
-                {subs.filter((s) => s.status === 'pending').length} pending
-              </span>
-            )}
+          <div className="mb-1 flex items-center gap-2">
+            <Search className="h-5 w-5 text-gray-500" />
+            <h2 className="text-lg font-semibold text-gray-900">Searches</h2>
+            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+              {searches.length}
+            </span>
           </div>
+          <p className="mb-3 text-xs text-gray-400">
+            Which Substacks people are matching (most recent first).
+          </p>
 
-          {subs.length === 0 ? (
+          {searches.length === 0 ? (
             <div className="rounded-xl border border-gray-200 bg-white px-4 py-6 text-center text-sm text-gray-400">
-              No submissions yet.
+              No searches yet.
             </div>
           ) : (
-            <div className="space-y-3">
-              {subs.map((s) => (
-                <div
-                  key={s.id}
-                  className="rounded-xl border border-gray-200 bg-white p-4"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <a
-                          href={s.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 font-medium text-gray-900 hover:text-orange-600"
-                        >
-                          <span className="truncate">{s.name}</span>
-                          <ExternalLink className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
-                        </a>
-                        {s.status === 'pending' && (
-                          <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-700">
-                            Pending
-                          </span>
-                        )}
-                        {s.status === 'approved' && (
-                          <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                            Approved
-                          </span>
-                        )}
-                        {s.status === 'rejected' && (
-                          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
-                            Rejected
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-1 text-sm text-gray-600">{s.description}</p>
-                      <p className="mt-1 truncate text-xs text-gray-400">
-                        {s.url}
-                        {s.tags ? ` · ${s.tags}` : ''}
-                      </p>
-                    </div>
-
-                    <div className="flex flex-shrink-0 items-center gap-1.5">
-                      {subBusy === s.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-                      ) : (
-                        <>
-                          {s.status !== 'approved' && (
-                            <button
-                              onClick={() => actOnSub(s.id, 'approve')}
-                              title="Approve"
-                              className="flex items-center gap-1 rounded-lg bg-green-500 px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-green-600"
-                            >
-                              <Check className="h-3.5 w-3.5" />
-                              Approve
-                            </button>
-                          )}
-                          {s.status !== 'rejected' && (
-                            <button
-                              onClick={() => actOnSub(s.id, 'reject')}
-                              title="Reject"
-                              className="flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50"
-                            >
-                              <X className="h-3.5 w-3.5" />
-                              Reject
-                            </button>
-                          )}
-                          <button
-                            onClick={() => actOnSub(s.id, 'delete')}
-                            title="Delete permanently"
-                            className="rounded-lg border border-gray-200 p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-500"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+              <table className="w-full text-left text-sm">
+                <thead className="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-500">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">Substack searched</th>
+                    <th className="px-4 py-3 font-medium">By</th>
+                    <th className="px-4 py-3 font-medium">When</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {searches.map((s, i) => (
+                    <tr key={i} className="border-b border-gray-100 last:border-0">
+                      <td className="px-4 py-3 text-gray-900">
+                        <span className="break-all">{s.topic}</span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-500">{s.email || 'anonymous'}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-gray-500">
+                        {fmtDateTime(s.created_at)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
