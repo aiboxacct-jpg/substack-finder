@@ -227,11 +227,7 @@ Output ONLY a raw JSON array of exactly 6 objects and nothing else — no preamb
     const end = cleaned.lastIndexOf(']');
 
     if (start === -1 || end === -1) {
-      return Response.json({
-        results: [],
-        submissions,
-        _dbg: { stop: response.stop_reason, text: cleaned.slice(0, 1800) },
-      });
+      return Response.json({ results: [], submissions });
     }
 
     let results;
@@ -244,6 +240,15 @@ Output ONLY a raw JSON array of exactly 6 objects and nothing else — no preamb
       );
     }
 
+    // The model sometimes returns bare domains (e.g. "foo.substack.com"); make
+    // every URL absolute so card links work and RSS enrichment can parse them.
+    if (Array.isArray(results)) {
+      for (const r of results) {
+        const u = typeof r?.url === 'string' ? r.url.trim() : '';
+        if (u && !/^https?:\/\//i.test(u)) r.url = 'https://' + u;
+      }
+    }
+
     // Enrich with each newsletter's latest posts (from RSS), then cache only
     // real, non-empty results so a bad/empty run isn't remembered.
     if (Array.isArray(results) && results.length > 0) {
@@ -254,11 +259,7 @@ Output ONLY a raw JSON array of exactly 6 objects and nothing else — no preamb
       });
     }
 
-    return Response.json({
-      results,
-      submissions,
-      _dbg: { stop: response.stop_reason, text: cleaned.slice(0, 1800) },
-    });
+    return Response.json({ results, submissions });
   } catch (err) {
     console.error('Search error:', err);
 
