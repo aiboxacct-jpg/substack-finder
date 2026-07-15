@@ -16,7 +16,7 @@ import {
 const STACK_TOOLS = [
   {
     name: 'Substack Finder',
-    blurb: 'Discover real Substack newsletters on any topic.',
+    blurb: 'Paste your Substack. Find the creators you should know and collaborate with.',
     live: true,
   },
 ];
