@@ -144,7 +144,7 @@ export default function AuthBar() {
     <>
       {/* The bar itself */}
       {user ? (
-        <div className="flex items-center justify-end gap-3 text-sm">
+        <div className="flex items-center justify-center gap-3 text-sm">
           <button
             onClick={() => setShowProfile(true)}
             title="View your account & subscription"
@@ -180,7 +180,7 @@ export default function AuthBar() {
           </button>
         </div>
       ) : (
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-center">
           <button
             onClick={() => setShowMembership(true)}
             className="flex items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-orange-600"
