@@ -241,6 +241,11 @@ export default function Home() {
           </p>
         </header>
 
+        {/* Friendly prompt above the search field */}
+        <p className="mb-3 text-center text-lg font-medium text-gray-800">
+          Okay… who should I connect with?
+        </p>
+
         {/* Search box with search-icon button */}
         <form onSubmit={handleSubmit} className="mb-5">
           <div className="flex items-center gap-2 rounded-2xl border border-orange-200 bg-white p-2 shadow-sm transition focus-within:border-orange-400 focus-within:ring-2 focus-within:ring-orange-200">
