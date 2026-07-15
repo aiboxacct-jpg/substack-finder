@@ -196,7 +196,7 @@ export default function MembershipModal({
           </ul>
 
           <p className="mt-4 rounded-lg bg-gray-50 px-3 py-2 text-center text-xs text-gray-500">
-            Free plan: 3 searches per day, no saving. Cancel anytime.
+            Free plan: 3 searches per day, no saving.
           </p>
 
           {/* CTA depends on where the visitor is in the funnel */}
