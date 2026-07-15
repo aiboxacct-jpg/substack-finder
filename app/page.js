@@ -352,6 +352,12 @@ export default function Home() {
                   key={i}
                   className="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-orange-300 hover:shadow-md"
                 >
+                  {/* Collaboration match score */}
+                  {Number.isFinite(Number(r.match)) && (
+                    <span className="mb-2 inline-block rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">
+                      {Math.round(Number(r.match))}% match
+                    </span>
+                  )}
                   {/* Newsletter name links to the newsletter */}
                   <a
                     href={r.url}
