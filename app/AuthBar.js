@@ -150,16 +150,19 @@ export default function AuthBar() {
             title="View your account & subscription"
             className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-gray-700 shadow-sm transition hover:border-orange-300 hover:bg-orange-50"
           >
-            <User className="h-4 w-4 text-gray-400" />
-            <span className="max-w-[150px] truncate">{user.email}</span>
-            <ChevronDown className="h-4 w-4 text-gray-400" />
-          </button>
-          {subscribed ? (
-            <span className="flex items-center gap-1.5 rounded-lg bg-green-50 px-2.5 py-1 font-medium text-green-700">
-              <Sparkles className="h-3.5 w-3.5" />
-              Member
+            <User className="h-4 w-4 flex-shrink-0 text-gray-400" />
+            <span className="flex flex-col items-start leading-tight">
+              <span className="max-w-[150px] truncate">{user.email}</span>
+              {subscribed && (
+                <span className="flex items-center gap-0.5 text-xs font-medium text-green-600">
+                  <Sparkles className="h-3 w-3" />
+                  Stack Tools Member
+                </span>
+              )}
             </span>
-          ) : (
+            <ChevronDown className="h-4 w-4 flex-shrink-0 text-gray-400" />
+          </button>
+          {!subscribed && (
             <button
               onClick={() => setShowMembership(true)}
               className="flex items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 font-medium text-white transition hover:bg-orange-600"
