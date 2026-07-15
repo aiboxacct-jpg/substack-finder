@@ -11,7 +11,7 @@ import {
   Loader2,
   LogIn,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
 // The "here's what you get" upsell. Opened from the Subscribe button, a
@@ -30,6 +30,13 @@ export default function MembershipModal({
   const [password, setPassword] = useState('');
   const [authBusy, setAuthBusy] = useState(false);
   const [authMsg, setAuthMsg] = useState('');
+
+  // Members have no reason to see the membership pitch — close it for them.
+  useEffect(() => {
+    if (open && subscribed) onClose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, subscribed]);
+
   if (!open) return null;
 
   async function handleUpgrade() {
