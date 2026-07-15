@@ -16,6 +16,7 @@ import {
   BookmarkCheck,
   Sparkles,
   Mail,
+  MessageCircle,
 } from 'lucide-react';
 import AuthBar from './AuthBar';
 import { supabase } from '@/lib/supabase';
@@ -51,6 +52,17 @@ function aboutUrl(url) {
   } catch {
     return url;
   }
+}
+
+// Where the "reach out" button should go. If the AI gave a valid Substack
+// profile URL (…/@handle), send them there — that's the page with the built-in
+// "Message" button. Otherwise fall back to the newsletter's About page.
+function contactTarget(r) {
+  const p = typeof r.profileUrl === 'string' ? r.profileUrl.trim() : '';
+  if (/^https:\/\/substack\.com\/@[\w.-]+$/i.test(p)) {
+    return { href: p, message: true };
+  }
+  return { href: aboutUrl(r.url), message: false };
 }
 
 export default function Home() {
@@ -398,13 +410,22 @@ export default function Home() {
                   )}
                   <div className="mt-3">
                     <a
-                      href={aboutUrl(r.url)}
+                      href={contactTarget(r).href}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 rounded-lg border border-orange-200 px-3 py-1.5 text-xs font-medium text-orange-700 transition hover:bg-orange-50"
                     >
-                      <Mail className="h-3.5 w-3.5" />
-                      Contact
+                      {contactTarget(r).message ? (
+                        <>
+                          <MessageCircle className="h-3.5 w-3.5" />
+                          Message
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="h-3.5 w-3.5" />
+                          Contact
+                        </>
+                      )}
                     </a>
                   </div>
                   {r.latestPosts && r.latestPosts.length > 0 && (
