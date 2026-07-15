@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import {
-  Search,
+  Users,
   ExternalLink,
   User,
   Loader2,
@@ -17,25 +17,14 @@ import {
   Sparkles,
 } from 'lucide-react';
 import AuthBar from './AuthBar';
-import SubmitModal from './SubmitModal';
 import { supabase } from '@/lib/supabase';
-
-// The "starter topic" pill buttons shown under the search box.
-const STARTER_TOPICS = [
-  'Anime',
-  'Retail arbitrage',
-  'Politics',
-  'Personal finance',
-  'AI & tech',
-  'Fragrance',
-];
 
 // Rotating status lines shown during the (slow) live web search.
 const LOADING_MESSAGES = [
-  'Searching the web for newsletters…',
-  'Reading Substack pages…',
-  'Checking which ones are still active…',
-  'Picking the 6 best matches…',
+  'Reading your Substack…',
+  'Figuring out your niche…',
+  'Scanning the web for creators…',
+  'Finding your best collaboration matches…',
 ];
 
 // Turn an ISO date into a short "3d ago" style label.
@@ -236,11 +225,8 @@ export default function Home() {
             Substack Finder
           </h1>
           <p className="mt-3 text-gray-600">
-            Type a topic and discover real Substack newsletters worth reading.
+            Paste your Substack. Find the creators you should know and collaborate with.
           </p>
-          <div className="mt-4 flex justify-center">
-            <SubmitModal />
-          </div>
         </header>
 
         {/* Search box with search-icon button */}
@@ -250,7 +236,7 @@ export default function Home() {
               type="text"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              placeholder="e.g. personal finance, anime, fragrance…"
+              placeholder="Paste your Substack link (e.g. yourname.substack.com)…"
               className="flex-1 bg-transparent px-3 py-2 text-gray-900 placeholder-gray-400 outline-none"
             />
             <button
@@ -258,25 +244,13 @@ export default function Home() {
               disabled={loading || !topic.trim()}
               className="flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2 font-medium text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Search className="h-5 w-5" />
-              <span className="hidden sm:inline">Search</span>
+              <Users className="h-5 w-5" />
+              <span className="hidden sm:inline">Match</span>
             </button>
           </div>
         </form>
 
-        {/* Starter topic pills — kept on a single row (scrolls sideways if narrow) */}
-        <div className="mb-8 flex flex-nowrap justify-center gap-2 overflow-x-auto pb-1">
-          {STARTER_TOPICS.map((s) => (
-            <button
-              key={s}
-              onClick={() => runSearch(s)}
-              disabled={loading}
-              className="whitespace-nowrap rounded-full border border-orange-200 bg-white px-3 py-1.5 text-sm text-gray-700 transition hover:border-orange-400 hover:bg-orange-50 disabled:opacity-50"
-            >
-              {s}
-            </button>
-          ))}
-        </div>
+        <div className="mb-8" />
 
         {/* Loading spinner */}
         {loading && (
@@ -321,7 +295,7 @@ export default function Home() {
             {/* Toolbar: current topic, sort control, and copyable share link */}
             <div className="mb-3 space-y-2">
               <p className="truncate text-sm text-gray-500">
-                Results for “{topic}”
+                Collaboration matches for “{topic}”
               </p>
               <div className="flex items-center justify-between gap-3">
                 <label className="flex items-center gap-1.5 text-sm text-gray-600">
@@ -492,7 +466,7 @@ export default function Home() {
           results.length === 0 &&
           submissions.length === 0 && (
             <p className="py-12 text-center text-gray-500">
-              No newsletters found. Try a different topic.
+              No matches found. Double-check your Substack link and try again.
             </p>
           )}
       </div>

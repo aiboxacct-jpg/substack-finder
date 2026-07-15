@@ -133,10 +133,10 @@ export async function POST(request) {
       'unknown';
     const token = (request.headers.get('authorization') || '').replace('Bearer ', '');
 
-    // Read and validate the topic from the request body.
+    // Read and validate the writer's own Substack (URL or name) from the body.
     const { topic } = await request.json();
     if (!topic || !topic.trim()) {
-      return Response.json({ error: 'Please enter a topic.' }, { status: 400 });
+      return Response.json({ error: 'Please paste your Substack link.' }, { status: 400 });
     }
 
     // Members get unlimited searches; free/anonymous users get a small taste.
@@ -186,8 +186,9 @@ export async function POST(request) {
       );
     }
 
-    // The prompt sent to Claude (kept from the prototype).
-    const prompt = `Use web search to find real, currently-active Substack newsletters about: "${topic}". Try queries like "${topic} site:substack.com" and "best ${topic} substack newsletters" and return the 6 most relevant. Respond with ONLY a raw JSON array (no markdown, no backticks). Each object: "name", "author" (use "" if unknown), "url" (real Substack URL, do not invent), "description" (one sentence, max ~18 words), "tag" (1-3 word category or vibe, e.g. "beginner-friendly", "deep dives", "weekly"). Only include newsletters found via search.`;
+    // The prompt sent to Claude — the writer pastes their own Substack, and we
+    // return other creators they could collaborate / cross-promote with.
+    const prompt = `A Substack writer wants to find other creators to collaborate or cross-promote with. Their own Substack is: "${topic}". Use web search to FIRST understand what their Substack is about — its topic, niche, and audience — then find the 6 most relevant OTHER real, currently-active Substack newsletters that would make great collaboration partners: same or complementary niche, and a comparable or adjacent audience. Do NOT include the writer's own Substack in the results. Respond with ONLY a raw JSON array (no markdown, no backticks). Each object: "name", "author" (use "" if unknown), "url" (real Substack URL, do not invent), "description" (one sentence on why they'd be a good collaboration match, max ~20 words), "tag" (1-3 word overlap, e.g. "same niche", "adjacent audience", "similar size"). Only include newsletters found via web search.`;
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
