@@ -9,7 +9,12 @@ import {
   CheckCircle2,
   Search,
   Trash2,
+  Mail,
 } from 'lucide-react';
+
+// "Email me these" is built but not launched yet — flip to true once Resend is
+// configured (RESEND_API_KEY in Vercel + verified sending domain).
+const EMAIL_FEATURE_ENABLED = false;
 
 // The tools under the Stack Tools umbrella. One subscription unlocks all of
 // them, so each live tool shows Member/Free based on the shared status.
@@ -35,7 +40,7 @@ export default function ProfileModal({ open, onClose, user, subscribed, onSubscr
     setLoadingSaved(true);
     supabase
       .from('saved_searches')
-      .select('id, topic, created_at')
+      .select('id, topic, created_at, email_optin')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .then(({ data }) => {
@@ -52,6 +57,15 @@ export default function ProfileModal({ open, onClose, user, subscribed, onSubscr
   async function removeSaved(id) {
     setSaved((s) => s.filter((x) => x.id !== id));
     await supabase.from('saved_searches').delete().eq('id', id);
+  }
+
+  // Toggle the weekly "email me these" digest for a saved search.
+  async function toggleEmail(s) {
+    const next = !s.email_optin;
+    setSaved((list) =>
+      list.map((x) => (x.id === s.id ? { ...x, email_optin: next } : x))
+    );
+    await supabase.from('saved_searches').update({ email_optin: next }).eq('id', s.id);
   }
 
   // Re-run a saved search: navigate to ?topic=… which auto-runs it on load.
@@ -187,13 +201,32 @@ export default function ProfileModal({ open, onClose, user, subscribed, onSubscr
                       <Search className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
                       <span className="truncate">{s.topic}</span>
                     </button>
-                    <button
-                      onClick={() => removeSaved(s.id)}
-                      aria-label="Delete saved search"
-                      className="flex-shrink-0 rounded-md p-1 text-gray-400 transition hover:bg-gray-100 hover:text-red-500"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <div className="flex flex-shrink-0 items-center gap-1">
+                      {EMAIL_FEATURE_ENABLED && (
+                        <button
+                          onClick={() => toggleEmail(s)}
+                          title={
+                            s.email_optin
+                              ? 'Emailing these weekly — click to turn off'
+                              : 'Email me these weekly'
+                          }
+                          className={`rounded-md p-1 transition ${
+                            s.email_optin
+                              ? 'text-orange-600'
+                              : 'text-gray-400 hover:text-orange-600'
+                          }`}
+                        >
+                          <Mail className="h-4 w-4" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => removeSaved(s.id)}
+                        aria-label="Delete saved search"
+                        className="rounded-md p-1 text-gray-400 transition hover:bg-gray-100 hover:text-red-500"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
