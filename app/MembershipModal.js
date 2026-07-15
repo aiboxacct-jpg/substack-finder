@@ -181,14 +181,22 @@ export default function MembershipModal({
                 You&apos;re a member — thank you!
               </div>
             ) : loggedIn ? (
-              <button
-                onClick={handleUpgrade}
-                disabled={busy}
-                className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-orange-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-orange-600 disabled:opacity-60"
-              >
-                {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-                Upgrade to Member — $9.99/mo
-              </button>
+              <div className="space-y-2">
+                <button
+                  onClick={handleUpgrade}
+                  disabled={busy}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-orange-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-orange-600 disabled:opacity-60"
+                >
+                  {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Upgrade to Stack Tools Member — $9.99/mo
+                </button>
+                <button
+                  onClick={onClose}
+                  className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
+                >
+                  Continue as a free member
+                </button>
+              </div>
             ) : (
               <div className="space-y-2">
                 <input
