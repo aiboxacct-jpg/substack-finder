@@ -188,7 +188,9 @@ export async function POST(request) {
 
     // The prompt sent to Claude — the writer pastes their own Substack, and we
     // return other creators they could collaborate / cross-promote with.
-    const prompt = `A Substack writer wants to find other creators to collaborate or cross-promote with. Their own Substack is: "${topic}". Use web search to FIRST understand what their Substack is about — its topic, niche, and audience — then find the 6 most relevant OTHER real, currently-active Substack newsletters that would make great collaboration partners: same or complementary niche, and a comparable or adjacent audience. Do NOT include the writer's own Substack in the results. Respond with ONLY a raw JSON array (no markdown, no backticks). Each object: "name", "author" (use "" if unknown), "url" (real Substack URL, do not invent), "description" (one sentence on why they'd be a good collaboration match, max ~20 words), "tag" (1-3 word overlap, e.g. "same niche", "adjacent audience", "similar size"). Only include newsletters found via web search.`;
+    const prompt = `You are helping a Substack writer find collaboration and cross-promotion partners. The writer's own Substack is: "${topic}". Use web search to identify what it is about (its niche, topic, and audience), then find 6 OTHER real, currently-active Substack newsletters in the same or an adjacent niche with a comparable audience — strong potential collaborators. Never include the writer's own Substack.
+
+Output ONLY a raw JSON array of exactly 6 objects and nothing else — no preamble, no explanation, no markdown, no code fences. Each object must have: "name", "author" (or "" if unknown), "url" (the real Substack URL — do not invent), "description" (one sentence on why they'd be a good collaboration match, max ~20 words), "tag" (1-3 word overlap like "same niche" or "adjacent audience"). If you are unsure of the exact niche, infer it from the name/URL and still return 6 relevant, real newsletters.`;
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -198,7 +200,7 @@ export async function POST(request) {
       // standard web_search_20250305 variant here.
       model: 'claude-haiku-4-5',
       max_tokens: 2000,
-      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 2 }],
+      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }],
       messages: [{ role: 'user', content: prompt }],
     };
 
@@ -225,7 +227,11 @@ export async function POST(request) {
     const end = cleaned.lastIndexOf(']');
 
     if (start === -1 || end === -1) {
-      return Response.json({ results: [], submissions });
+      return Response.json({
+        results: [],
+        submissions,
+        _dbg: { stop: response.stop_reason, text: cleaned.slice(0, 1800) },
+      });
     }
 
     let results;
@@ -248,7 +254,11 @@ export async function POST(request) {
       });
     }
 
-    return Response.json({ results, submissions });
+    return Response.json({
+      results,
+      submissions,
+      _dbg: { stop: response.stop_reason, text: cleaned.slice(0, 1800) },
+    });
   } catch (err) {
     console.error('Search error:', err);
 
