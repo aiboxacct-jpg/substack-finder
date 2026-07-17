@@ -503,6 +503,19 @@ export default function Home() {
               No matches found. Double-check your Substack link and try again.
             </p>
           )}
+
+        {/* Footer */}
+        <footer className="mt-16 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 border-t border-orange-100 pt-6 text-xs text-gray-400">
+          <a href="/terms" className="hover:text-orange-600">
+            Terms
+          </a>
+          <span>·</span>
+          <a href="/privacy" className="hover:text-orange-600">
+            Privacy
+          </a>
+          <span>·</span>
+          <span>© 2026 Stack Tools</span>
+        </footer>
       </div>
     </main>
   );

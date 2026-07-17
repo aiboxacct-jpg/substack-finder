@@ -289,7 +289,7 @@ Output ONLY a raw JSON array of exactly 6 objects and nothing else — no preamb
       message = 'The API key is missing or invalid. Please check the server configuration.';
     } else if (/credit balance/i.test(apiMessage)) {
       message =
-        'Searches are temporarily unavailable (it is being replenished). Please try again later, or tip now to keep the service up!';
+        'Matches are temporarily unavailable right now. Please try again in a little while.';
     } else if (status === 429) {
       message = 'The search service is busy right now. Please try again in a moment.';
     }
