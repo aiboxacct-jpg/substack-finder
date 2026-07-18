@@ -12,9 +12,8 @@ import {
   Mail,
 } from 'lucide-react';
 
-// "Email me these" is built but not launched yet — flip to true once Resend is
-// configured (RESEND_API_KEY in Vercel + verified sending domain).
-const EMAIL_FEATURE_ENABLED = false;
+// "Email me these" — LIVE (Resend configured + send.stacktools.site verified).
+const EMAIL_FEATURE_ENABLED = true;
 
 // The tools under the Stack Tools umbrella. One subscription unlocks all of
 // them, so each live tool shows Member/Free based on the shared status.
