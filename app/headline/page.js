@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import AuthBar from '../AuthBar';
 import { supabase } from '@/lib/supabase';
+import { useHubHref } from '@/lib/hubLink';
 
 const MAX_HEADLINE_LENGTH = 200;
 
@@ -35,6 +36,7 @@ export default function HeadlineAnalyzer() {
   const [error, setError] = useState('');
   const [upgrade, setUpgrade] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(null);
+  const hubHref = useHubHref();
 
   const tooLong = headline.length > MAX_HEADLINE_LENGTH;
 
@@ -107,7 +109,7 @@ export default function HeadlineAnalyzer() {
         </div>
 
         <a
-          href="/"
+          href={hubHref}
           className="mb-6 inline-flex items-center gap-1.5 text-sm text-gray-500 transition hover:text-orange-600"
         >
           <ArrowLeft className="h-4 w-4" />
