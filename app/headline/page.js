@@ -255,6 +255,14 @@ export default function HeadlineAnalyzer() {
                   <Sparkles className="h-4 w-4 text-orange-500" />
                   Stronger versions
                 </h2>
+                {/* The model writes [X] rather than inventing a number it has
+                    no way of knowing. Explain that, but only when it appears. */}
+                {result.rewrites.some((r) => r.headline.includes('[X]')) && (
+                  <p className="mb-3 text-xs text-gray-500">
+                    <span className="font-medium text-gray-600">[X]</span> is a
+                    placeholder — swap in your real number before publishing.
+                  </p>
+                )}
                 <div className="space-y-3">
                   {result.rewrites.map((r, i) => (
                     <div
