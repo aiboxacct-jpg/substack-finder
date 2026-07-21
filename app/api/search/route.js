@@ -170,48 +170,73 @@ Output ONLY a raw JSON array of exactly 6 objects and nothing else — no preamb
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-    const requestParams = {
-      // Haiku 4.5 is ~3x cheaper than Sonnet ($1/$5 vs $3/$15 per M tokens).
-      // Haiku doesn't support the newer web_search_20260209, so we use the
-      // standard web_search_20250305 variant here.
-      model: 'claude-haiku-4-5',
-      max_tokens: 2000,
-      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }],
-      messages: [{ role: 'user', content: prompt }],
-    };
+    // Ask the model once and pull a JSON array out of the reply. Returns null
+    // if it answered in prose instead of data, which is the failure the retry
+    // below exists to handle.
+    async function attemptMatch(promptText) {
+      const requestParams = {
+        // Haiku 4.5 is ~3x cheaper than Sonnet ($1/$5 vs $3/$15 per M tokens).
+        // Haiku doesn't support the newer web_search_20260209, so we use the
+        // standard web_search_20250305 variant here.
+        model: 'claude-haiku-4-5',
+        max_tokens: 2000,
+        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }],
+        messages: [{ role: 'user', content: promptText }],
+      };
 
-    let response = await anthropic.messages.create(requestParams);
+      let response = await anthropic.messages.create(requestParams);
 
-    // Web search runs server-side; if it needs another round it returns
-    // stop_reason "pause_turn" — re-send to let it continue.
-    let guard = 0;
-    while (response.stop_reason === 'pause_turn' && guard < 5) {
-      requestParams.messages.push({ role: 'assistant', content: response.content });
-      response = await anthropic.messages.create(requestParams);
-      guard += 1;
+      // Web search runs server-side; if it needs another round it returns
+      // stop_reason "pause_turn" — re-send to let it continue.
+      let guard = 0;
+      while (response.stop_reason === 'pause_turn' && guard < 5) {
+        requestParams.messages.push({ role: 'assistant', content: response.content });
+        response = await anthropic.messages.create(requestParams);
+        guard += 1;
+      }
+
+      // Extract the text blocks, strip code fences, slice to the JSON array.
+      const text = response.content
+        .filter((block) => block.type === 'text')
+        .map((block) => block.text)
+        .join('\n')
+        .trim();
+
+      const cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+      const start = cleaned.indexOf('[');
+      const end = cleaned.lastIndexOf(']');
+      if (start === -1 || end === -1) return null;
+
+      try {
+        return JSON.parse(cleaned.slice(start, end + 1));
+      } catch {
+        return null;
+      }
     }
 
-    // 6. Extract the text blocks, strip code fences, slice to the JSON array.
-    const text = response.content
-      .filter((block) => block.type === 'text')
-      .map((block) => block.text)
-      .join('\n')
-      .trim();
+    // The model occasionally replies in prose ("I couldn't find enough about
+    // this newsletter…") instead of JSON. That is random rather than a real
+    // "no matches" — the first user to hit it was shown a message blaming her
+    // link, which was fine. So try once more with a blunter instruction before
+    // giving up. This only costs anything on the rare failure path; a
+    // successful first call never reaches it.
+    let results = await attemptMatch(prompt);
 
-    const cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
-    const start = cleaned.indexOf('[');
-    const end = cleaned.lastIndexOf(']');
-
-    if (start === -1 || end === -1) {
-      return Response.json({ results: [], submissions });
+    if (!Array.isArray(results) || results.length === 0) {
+      results = await attemptMatch(
+        `${prompt}\n\nIMPORTANT: a previous attempt failed by replying with prose instead of data. Reply with ONLY the JSON array. Do not explain, do not apologise, do not say you are unsure. If you cannot verify every detail, still return your 6 best real Substack newsletters based on what you do know.`
+      );
     }
 
-    let results;
-    try {
-      results = JSON.parse(cleaned.slice(start, end + 1));
-    } catch {
+    // Both attempts came back unusable. Report it as a real failure rather than
+    // quietly claiming there are no matches.
+    if (!Array.isArray(results) || results.length === 0) {
       return Response.json(
-        { error: 'Could not read the results. Please try again.', submissions },
+        {
+          error:
+            "The matcher had trouble reading that one. This is usually temporary — please try again in a moment.",
+          submissions,
+        },
         { status: 200 }
       );
     }

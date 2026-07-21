@@ -512,9 +512,22 @@ export default function Home() {
           searched &&
           results.length === 0 &&
           submissions.length === 0 && (
-            <p className="py-12 text-center text-gray-500">
-              No matches found. Double-check your Substack link and try again.
-            </p>
+            <div className="py-12 text-center">
+              <p className="text-gray-600">No matches came back that time.</p>
+              {/* Never imply their newsletter is the problem. The usual cause
+                  is a hiccup on our side, and a retry normally fixes it. */}
+              <p className="mx-auto mt-2 max-w-sm text-sm text-gray-500">
+                That is almost always a temporary hiccup on our side, not
+                anything about your newsletter. Try again, or check the link
+                points to your publication&rsquo;s home page.
+              </p>
+              <button
+                onClick={() => runSearch()}
+                className="mt-4 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
+              >
+                Try again
+              </button>
+            </div>
           )}
 
         {/* Cross-tool nudge — the same membership already covers this */}
