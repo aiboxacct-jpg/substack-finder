@@ -24,11 +24,26 @@ export async function GET(request) {
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
   );
-  const { data, error } = await admin
+  // Prefer the newer shape that records WHICH tool the run came from. If
+  // searches-tool-column.sql hasn't been run yet the column doesn't exist, so
+  // fall back to the original columns and label those rows as the Finder.
+  let { data, error } = await admin
     .from('searches')
-    .select('topic, email, created_at')
+    .select('topic, email, tool, created_at')
     .order('created_at', { ascending: false })
     .limit(200);
+
+  if (error) {
+    const fallback = await admin
+      .from('searches')
+      .select('topic, email, created_at')
+      .order('created_at', { ascending: false })
+      .limit(200);
+    if (!fallback.error) {
+      data = (fallback.data || []).map((row) => ({ ...row, tool: 'finder' }));
+      error = null;
+    }
+  }
 
   if (error) {
     console.error('Admin searches query error:', error.message);

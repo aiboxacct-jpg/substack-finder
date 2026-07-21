@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { checkDailyCap, checkFreeDailyLimit } from '@/lib/rateLimit';
+import { getMembership, logToolRun } from '@/lib/membership';
 import { createClient } from '@supabase/supabase-js';
 
 // Simple in-memory cache: a topic's results are reused for 24 hours so repeat
@@ -97,48 +98,6 @@ async function getMatchingSubmissions(topic) {
   }
 }
 
-// Record a match search so the admin can see which Substacks people are
-// matching. Fire-and-forget: never let a logging hiccup break a search.
-async function logSearch(topic, email) {
-  try {
-    const admin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
-    await admin.from('searches').insert({ topic, email: email || null });
-  } catch {
-    // logging is best-effort
-  }
-}
-
-// Figure out who's calling and whether they're a paying member.
-async function getMembership(token) {
-  if (!token) return { user: null, isMember: false };
-  try {
-    const anon = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    );
-    const {
-      data: { user },
-    } = await anon.auth.getUser(token);
-    if (!user) return { user: null, isMember: false };
-
-    const admin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
-    const { data } = await admin
-      .from('profiles')
-      .select('is_subscribed')
-      .eq('id', user.id)
-      .single();
-    return { user, isMember: !!data?.is_subscribed };
-  } catch {
-    return { user: null, isMember: false };
-  }
-}
-
 // This runs ONLY on the server, so the API key is never sent to the browser.
 export async function POST(request) {
   try {
@@ -157,7 +116,7 @@ export async function POST(request) {
     const { user, isMember } = await getMembership(token);
     if (!isMember) {
       const identity = user?.id || ip;
-      const free = checkFreeDailyLimit(identity);
+      const free = checkFreeDailyLimit(identity, 'finder');
       if (!free.allowed) {
         return Response.json(
           {
@@ -170,7 +129,7 @@ export async function POST(request) {
         );
       }
       // Site-wide backstop so the free tier can't spike the bill.
-      const daily = checkDailyCap();
+      const daily = checkDailyCap('finder');
       if (!daily.allowed) {
         return Response.json(
           {
@@ -184,7 +143,7 @@ export async function POST(request) {
     }
 
     // Log this match so the admin dashboard can show who's matching what.
-    await logSearch(topic.trim(), user?.email);
+    await logToolRun(topic.trim(), user?.email, 'finder');
 
     // Creator submissions are read fresh (cheap) so approvals show immediately.
     const submissions = await getMatchingSubmissions(topic);

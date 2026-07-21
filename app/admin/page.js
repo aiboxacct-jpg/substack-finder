@@ -278,25 +278,26 @@ export default function AdminPage() {
         <div className="mt-10">
           <div className="mb-1 flex items-center gap-2">
             <Search className="h-5 w-5 text-gray-500" />
-            <h2 className="text-lg font-semibold text-gray-900">Searches</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Tool usage</h2>
             <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
               {searches.length}
             </span>
           </div>
           <p className="mb-3 text-xs text-gray-400">
-            Which Substacks people are matching (most recent first).
+            What people are running through each tool (most recent first).
           </p>
 
           {searches.length === 0 ? (
             <div className="rounded-xl border border-gray-200 bg-white px-4 py-6 text-center text-sm text-gray-400">
-              No searches yet.
+              No usage yet.
             </div>
           ) : (
             <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
               <table className="w-full text-left text-sm">
                 <thead className="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-500">
                   <tr>
-                    <th className="px-4 py-3 font-medium">Substack searched</th>
+                    <th className="px-4 py-3 font-medium">Tool</th>
+                    <th className="px-4 py-3 font-medium">Input</th>
                     <th className="px-4 py-3 font-medium">By</th>
                     <th className="px-4 py-3 font-medium">When</th>
                   </tr>
@@ -304,6 +305,11 @@ export default function AdminPage() {
                 <tbody>
                   {searches.map((s, i) => (
                     <tr key={i} className="border-b border-gray-100 last:border-0">
+                      <td className="whitespace-nowrap px-4 py-3">
+                        <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">
+                          {s.tool === 'headline' ? 'Headline' : 'Finder'}
+                        </span>
+                      </td>
                       <td className="px-4 py-3 text-gray-900">
                         <span className="break-all">{s.topic}</span>
                       </td>
