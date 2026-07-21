@@ -220,13 +220,15 @@ export default function HeadlineAnalyzer() {
               )}
             </div>
 
+            {/* Keep this input at 16px (text-base): iOS Safari auto-zooms into
+                any field smaller than that on focus, forcing a pinch back out. */}
             <div className="mt-3 border-t border-gray-100 pt-3">
               <input
                 type="text"
                 value={context}
                 onChange={(e) => setContext(e.target.value)}
                 placeholder="Optional: what's the post actually about?"
-                className="w-full bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none"
+                className="w-full bg-transparent text-base text-gray-700 placeholder-gray-400 outline-none"
               />
             </div>
           </div>
