@@ -24,24 +24,35 @@ export async function GET(request) {
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
   );
-  // Prefer the newer shape that records WHICH tool the run came from. If
-  // searches-tool-column.sql hasn't been run yet the column doesn't exist, so
-  // fall back to the original columns and label those rows as the Finder.
+  // Prefer the fullest shape: which tool, and how the run turned out. Each
+  // migration was applied at a different time (searches-tool-column.sql, then
+  // searches-outcome-columns.sql), so fall back through the older shapes rather
+  // than failing outright if one hasn't been run yet.
   let { data, error } = await admin
     .from('searches')
-    .select('topic, email, tool, created_at')
+    .select('topic, email, tool, outcome, result_count, created_at')
     .order('created_at', { ascending: false })
     .limit(200);
 
   if (error) {
-    const fallback = await admin
+    const withTool = await admin
       .from('searches')
-      .select('topic, email, created_at')
+      .select('topic, email, tool, created_at')
       .order('created_at', { ascending: false })
       .limit(200);
-    if (!fallback.error) {
-      data = (fallback.data || []).map((row) => ({ ...row, tool: 'finder' }));
+    if (!withTool.error) {
+      data = withTool.data || [];
       error = null;
+    } else {
+      const basic = await admin
+        .from('searches')
+        .select('topic, email, created_at')
+        .order('created_at', { ascending: false })
+        .limit(200);
+      if (!basic.error) {
+        data = (basic.data || []).map((row) => ({ ...row, tool: 'finder' }));
+        error = null;
+      }
     }
   }
 

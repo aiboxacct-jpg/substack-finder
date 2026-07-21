@@ -35,6 +35,35 @@ function fmtDateTime(iso) {
   });
 }
 
+// How a run turned out, at a glance. The point of this column is to spot the
+// bad rows instantly instead of inferring failures from timestamps.
+const OUTCOMES = {
+  ok: { label: 'OK', style: 'bg-green-100 text-green-700' },
+  ok_retry: { label: 'OK (retry)', style: 'bg-lime-100 text-lime-700' },
+  cached: { label: 'Cached', style: 'bg-gray-100 text-gray-600' },
+  failed: { label: 'No results', style: 'bg-red-100 text-red-700' },
+  error: { label: 'Error', style: 'bg-red-100 text-red-700' },
+};
+
+function OutcomeBadge({ outcome, count }) {
+  // Null means either "logged before this column existed" or, for a recent
+  // row, a run that never finished — worth showing rather than hiding.
+  if (!outcome) {
+    return <span className="text-xs text-gray-300">—</span>;
+  }
+  const o = OUTCOMES[outcome] || { label: outcome, style: 'bg-gray-100 text-gray-600' };
+  return (
+    <span className="flex items-center gap-1.5">
+      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${o.style}`}>
+        {o.label}
+      </span>
+      {Number.isFinite(Number(count)) && Number(count) > 0 && (
+        <span className="text-xs text-gray-400">{count}</span>
+      )}
+    </span>
+  );
+}
+
 export default function AdminPage() {
   const [status, setStatus] = useState('loading'); // loading | needlogin | denied | error | ready
   const [data, setData] = useState(null);
@@ -298,6 +327,7 @@ export default function AdminPage() {
                   <tr>
                     <th className="px-4 py-3 font-medium">Tool</th>
                     <th className="px-4 py-3 font-medium">Input</th>
+                    <th className="px-4 py-3 font-medium">Result</th>
                     <th className="px-4 py-3 font-medium">By</th>
                     <th className="px-4 py-3 font-medium">When</th>
                   </tr>
@@ -312,6 +342,9 @@ export default function AdminPage() {
                       </td>
                       <td className="px-4 py-3 text-gray-900">
                         <span className="break-all">{s.topic}</span>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3">
+                        <OutcomeBadge outcome={s.outcome} count={s.result_count} />
                       </td>
                       <td className="px-4 py-3 text-gray-500">{s.email || 'anonymous'}</td>
                       <td className="whitespace-nowrap px-4 py-3 text-gray-500">

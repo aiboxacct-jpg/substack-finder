@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { checkDailyCap, checkFreeDailyLimit } from '@/lib/rateLimit';
-import { getMembership, logToolRun } from '@/lib/membership';
+import { getMembership, logToolRun, recordOutcome } from '@/lib/membership';
 import { createClient } from '@supabase/supabase-js';
 
 // Simple in-memory cache: a topic's results are reused for 24 hours so repeat
@@ -100,6 +100,8 @@ async function getMatchingSubmissions(topic) {
 
 // This runs ONLY on the server, so the API key is never sent to the browser.
 export async function POST(request) {
+  // Declared out here so the catch block can mark a crashed run as an error.
+  let logId = null;
   try {
     const ip =
       (request.headers.get('x-forwarded-for') || '').split(',')[0].trim() ||
@@ -142,8 +144,9 @@ export async function POST(request) {
       }
     }
 
-    // Log this match so the admin dashboard can show who's matching what.
-    await logToolRun(topic.trim(), user?.email, 'finder');
+    // Log this match so the admin dashboard can show who's matching what. The
+    // outcome is filled in below once we know how it went.
+    logId = await logToolRun(topic.trim(), user?.email, 'finder');
 
     // Creator submissions are read fresh (cheap) so approvals show immediately.
     const submissions = await getMatchingSubmissions(topic);
@@ -152,6 +155,7 @@ export async function POST(request) {
     const cacheKey = topic.trim().toLowerCase();
     const cached = searchCache.get(cacheKey);
     if (cached && cached.expires > Date.now()) {
+      await recordOutcome(logId, 'cached', cached.results.length);
       return Response.json({ results: cached.results, submissions, cached: true });
     }
 
@@ -221,8 +225,10 @@ Output ONLY a raw JSON array of exactly 6 objects and nothing else — no preamb
     // giving up. This only costs anything on the rare failure path; a
     // successful first call never reaches it.
     let results = await attemptMatch(prompt);
+    let neededRetry = false;
 
     if (!Array.isArray(results) || results.length === 0) {
+      neededRetry = true;
       results = await attemptMatch(
         `${prompt}\n\nIMPORTANT: a previous attempt failed by replying with prose instead of data. Reply with ONLY the JSON array. Do not explain, do not apologise, do not say you are unsure. If you cannot verify every detail, still return your 6 best real Substack newsletters based on what you do know.`
       );
@@ -231,6 +237,7 @@ Output ONLY a raw JSON array of exactly 6 objects and nothing else — no preamb
     // Both attempts came back unusable. Report it as a real failure rather than
     // quietly claiming there are no matches.
     if (!Array.isArray(results) || results.length === 0) {
+      await recordOutcome(logId, 'failed', 0);
       return Response.json(
         {
           error:
@@ -240,6 +247,11 @@ Output ONLY a raw JSON array of exactly 6 objects and nothing else — no preamb
         { status: 200 }
       );
     }
+
+    // Tracking 'ok' vs 'ok_retry' separately shows how often the retry is
+    // actually saving a run, which is the number that says whether the fix
+    // was worth it.
+    await recordOutcome(logId, neededRetry ? 'ok_retry' : 'ok', results.length);
 
     // The model sometimes returns bare domains (e.g. "foo.substack.com"); make
     // every URL absolute so card links work and RSS enrichment can parse them.
@@ -263,6 +275,7 @@ Output ONLY a raw JSON array of exactly 6 objects and nothing else — no preamb
     return Response.json({ results, submissions });
   } catch (err) {
     console.error('Search error:', err);
+    await recordOutcome(logId, 'error');
 
     // Turn common API failures into clear, friendly messages.
     const status = err?.status;

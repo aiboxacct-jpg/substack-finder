@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { checkDailyCap, checkFreeDailyLimit } from '@/lib/rateLimit';
-import { getMembership, logToolRun } from '@/lib/membership';
+import { getMembership, logToolRun, recordOutcome } from '@/lib/membership';
 import { buildPrompt, parseJsonObject, normalize } from '@/lib/headline';
 
 // Same 24h in-memory cache idea as the Finder: re-analysing an identical
@@ -15,6 +15,8 @@ const MAX_HEADLINE_LENGTH = 200;
 const MAX_CONTEXT_LENGTH = 300;
 
 export async function POST(request) {
+  // Declared out here so the catch block can mark a crashed run as an error.
+  let logId = null;
   try {
     const ip =
       (request.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
@@ -66,12 +68,14 @@ export async function POST(request) {
       }
     }
 
-    // Log the run so the admin dashboard shows what people are analysing.
-    await logToolRun(headline, user?.email, 'headline');
+    // Log the run so the admin dashboard shows what people are analysing. The
+    // outcome is filled in below once we know how it went.
+    logId = await logToolRun(headline, user?.email, 'headline');
 
     const cacheKey = `${headline.toLowerCase()}|${context.toLowerCase()}`;
     const cached = headlineCache.get(cacheKey);
     if (cached && cached.expires > Date.now()) {
+      await recordOutcome(logId, 'cached', cached.data.rewrites.length);
       return Response.json({ ...cached.data, cached: true });
     }
 
@@ -103,6 +107,7 @@ export async function POST(request) {
 
     const raw = parseJsonObject(text);
     if (!raw) {
+      await recordOutcome(logId, 'failed', 0);
       return Response.json(
         { error: 'Could not read the analysis. Please try again.' },
         { status: 200 }
@@ -116,9 +121,16 @@ export async function POST(request) {
       headlineCache.set(cacheKey, { data, expires: Date.now() + CACHE_TTL_MS });
     }
 
+    await recordOutcome(
+      logId,
+      data.rewrites.length > 0 ? 'ok' : 'failed',
+      data.rewrites.length
+    );
+
     return Response.json(data);
   } catch (err) {
     console.error('Headline error:', err);
+    await recordOutcome(logId, 'error');
 
     const status = err?.status;
     const apiMessage = err?.error?.error?.message || err?.message || '';
