@@ -18,6 +18,7 @@ import {
   Mail,
   ArrowLeft,
   Wand2,
+  Share2,
 } from 'lucide-react';
 import AuthBar from '../AuthBar';
 import { supabase } from '@/lib/supabase';
@@ -70,6 +71,7 @@ export default function Home() {
   const [user, setUser] = useState(null);
   const [isMember, setIsMember] = useState(false);
   const [saveState, setSaveState] = useState('idle'); // idle | saving | saved
+  const [shareState, setShareState] = useState('idle'); // idle | saving | copied
   const hubHref = useHubHref();
   const headlineHref = useToolHref('headline');
 
@@ -189,6 +191,33 @@ export default function Home() {
       setTimeout(() => setCopied(false), 2000);
     } catch {
       // Clipboard not available — quietly ignore.
+    }
+  }
+
+  // Save a snapshot of these results and copy a link to it.
+  //
+  // Different from "Copy search link" above, which shares the QUERY and re-runs
+  // the search on the recipient's side — costing another AI call, counting
+  // against their daily limit, and possibly returning different matches. This
+  // shares what is actually on screen, instantly and free for whoever opens it.
+  async function shareResults() {
+    if (results.length === 0 || shareState !== 'idle') return;
+    setShareState('saving');
+    try {
+      const res = await fetch('/api/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic, results }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.id) throw new Error('share failed');
+
+      await navigator.clipboard.writeText(`${window.location.origin}/s/${data.id}`);
+      setShareState('copied');
+      setTimeout(() => setShareState('idle'), 2500);
+    } catch {
+      setShareState('idle');
+      setError('Could not create the share link. Please try again.');
     }
   }
 
@@ -361,8 +390,29 @@ export default function Home() {
                     <X className="h-4 w-4" />
                     Clear all
                   </button>
+                  {/* Shares these exact results. Free and instant for whoever
+                      opens it, and it does not use their daily allowance. */}
+                  <button
+                    onClick={shareResults}
+                    disabled={shareState !== 'idle'}
+                    title="Create a link that shows these exact matches"
+                    className="flex items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-orange-600 disabled:opacity-60"
+                  >
+                    {shareState === 'copied' ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <Share2 className="h-4 w-4" />
+                    )}
+                    {shareState === 'saving'
+                      ? 'Creating…'
+                      : shareState === 'copied'
+                        ? 'Link copied!'
+                        : 'Share results'}
+                  </button>
+                  {/* Shares the SEARCH, which re-runs on the other side. */}
                   <button
                     onClick={copyShareLink}
+                    title="Copy a link that re-runs this search"
                     className="flex items-center gap-1.5 rounded-lg border border-orange-200 px-3 py-1.5 text-sm text-orange-700 transition hover:bg-orange-50"
                   >
                     {copied ? (
@@ -370,7 +420,7 @@ export default function Home() {
                     ) : (
                       <Copy className="h-4 w-4" />
                     )}
-                    {copied ? 'Copied!' : 'Copy link'}
+                    {copied ? 'Copied!' : 'Copy search link'}
                   </button>
                 </div>
               </div>
