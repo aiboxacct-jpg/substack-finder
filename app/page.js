@@ -1,7 +1,9 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Users, Wand2, ArrowRight, Sparkles } from 'lucide-react';
 import AuthBar from './AuthBar';
+import { toolUrl } from '@/lib/links';
 
 // The Stack Tools hub. Every tool is a route in this one app, so they all share
 // a single login and a single membership. Each tool belongs to one of the four
@@ -13,6 +15,7 @@ const TOOLS = [
     pillar: 'Connect',
     description:
       'Paste your Substack and find the creators you should know and collaborate with.',
+    tool: 'finder',
     href: '/finder',
     icon: Users,
     live: true,
@@ -22,6 +25,7 @@ const TOOLS = [
     pillar: 'Create',
     description:
       'Score your headline on clarity, curiosity, specificity and length, then get five stronger versions.',
+    tool: 'headline',
     href: '/headline',
     icon: Wand2,
     live: true,
@@ -38,6 +42,13 @@ const COMING_SOON = [
 ];
 
 export default function Hub() {
+  // Each tool's canonical home is its own subdomain. Start with the plain
+  // route so the server and client markup match, then upgrade after mount.
+  const [hrefs, setHrefs] = useState({});
+  useEffect(() => {
+    setHrefs(Object.fromEntries(TOOLS.map((t) => [t.tool, toolUrl(t.tool)])));
+  }, []);
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-orange-50 to-white px-4 py-12">
       <div className="mx-auto max-w-2xl">
@@ -64,7 +75,7 @@ export default function Hub() {
             return (
               <a
                 key={tool.href}
-                href={tool.href}
+                href={hrefs[tool.tool] || tool.href}
                 className="group flex items-start gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-orange-300 hover:shadow-md"
               >
                 <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-orange-100 text-orange-600">

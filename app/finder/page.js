@@ -16,9 +16,12 @@ import {
   BookmarkCheck,
   Sparkles,
   Mail,
+  ArrowLeft,
+  Wand2,
 } from 'lucide-react';
 import AuthBar from '../AuthBar';
 import { supabase } from '@/lib/supabase';
+import { useHubHref, useToolHref } from '@/lib/links';
 
 // Rotating status lines shown during the (slow) live web search.
 const LOADING_MESSAGES = [
@@ -67,6 +70,8 @@ export default function Home() {
   const [user, setUser] = useState(null);
   const [isMember, setIsMember] = useState(false);
   const [saveState, setSaveState] = useState('idle'); // idle | saving | saved
+  const hubHref = useHubHref();
+  const headlineHref = useToolHref('headline');
 
   // Track login + membership (members see the Save button).
   useEffect(() => {
@@ -230,6 +235,14 @@ export default function Home() {
         <div className="mb-6">
           <AuthBar />
         </div>
+
+        <a
+          href={hubHref}
+          className="mb-6 inline-flex items-center gap-1.5 text-sm text-gray-500 transition hover:text-orange-600"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          All Stack Tools
+        </a>
 
         {/* Heading */}
         <header className="mb-8 text-center">
@@ -503,6 +516,24 @@ export default function Home() {
               No matches found. Double-check your Substack link and try again.
             </p>
           )}
+
+        {/* Cross-tool nudge — the same membership already covers this */}
+        <a
+          href={headlineHref}
+          className="group mt-12 flex items-center gap-3 rounded-2xl border border-orange-200 bg-orange-50/50 p-4 transition hover:border-orange-300 hover:bg-orange-50"
+        >
+          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-orange-100 text-orange-600">
+            <Wand2 className="h-4 w-4" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-gray-900 group-hover:text-orange-700">
+              Also try the Headline Analyzer
+            </p>
+            <p className="text-xs text-gray-600">
+              Score your next headline and get five stronger versions.
+            </p>
+          </div>
+        </a>
 
         {/* Footer */}
         <footer className="mt-16 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 border-t border-orange-100 pt-6 text-xs text-gray-400">

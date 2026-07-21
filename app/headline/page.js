@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Wand2,
   Loader2,
@@ -10,10 +10,12 @@ import {
   Sparkles,
   ArrowLeft,
   RefreshCw,
+  Bookmark,
+  BookmarkCheck,
 } from 'lucide-react';
 import AuthBar from '../AuthBar';
 import { supabase } from '@/lib/supabase';
-import { useHubHref } from '@/lib/hubLink';
+import { useHubHref } from '@/lib/links';
 
 const MAX_HEADLINE_LENGTH = 200;
 
@@ -36,19 +38,56 @@ export default function HeadlineAnalyzer() {
   const [error, setError] = useState('');
   const [upgrade, setUpgrade] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(null);
+  const [user, setUser] = useState(null);
+  const [isMember, setIsMember] = useState(false);
+  const [saveState, setSaveState] = useState('idle'); // idle | saving | saved
   const hubHref = useHubHref();
 
   const tooLong = headline.length > MAX_HEADLINE_LENGTH;
 
-  async function analyze(e) {
-    e?.preventDefault();
-    const h = headline.trim();
-    if (!h || loading || tooLong) return;
+  // Track login + membership (members can save an analysis).
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) =>
+      setUser(session?.user ?? null)
+    );
+    return () => sub.subscription.unsubscribe();
+  }, []);
 
+  useEffect(() => {
+    if (!user) {
+      setIsMember(false);
+      return;
+    }
+    let active = true;
+    supabase
+      .from('profiles')
+      .select('is_subscribed')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (active) setIsMember(!!data?.is_subscribed);
+      });
+    return () => {
+      active = false;
+    };
+  }, [user]);
+
+  async function analyze(e, override) {
+    e?.preventDefault();
+    const h = (override?.headline ?? headline).trim();
+    const c = (override?.context ?? context).trim();
+    if (!h || loading || h.length > MAX_HEADLINE_LENGTH) return;
+
+    if (override) {
+      setHeadline(h);
+      setContext(c);
+    }
     setLoading(true);
     setError('');
     setUpgrade(false);
     setResult(null);
+    setSaveState('idle');
 
     try {
       // Include the login token so the server knows if this is a member.
@@ -62,7 +101,7 @@ export default function HeadlineAnalyzer() {
       const res = await fetch('/api/headline', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ headline: h, context: context.trim() }),
+        body: JSON.stringify({ headline: h, context: c }),
       });
       const data = await res.json();
 
@@ -77,6 +116,31 @@ export default function HeadlineAnalyzer() {
     } finally {
       setLoading(false);
     }
+  }
+
+  // Opened with ?h=… (a re-run from a saved analysis)? Run it straight away.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const h = params.get('h');
+    if (h) analyze(null, { headline: h, context: params.get('c') || '' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Save this analysis (members only) so it can be revisited from the account
+  // popup. Stores the full result, so the list can show the score without
+  // paying for the analysis again.
+  async function saveAnalysis() {
+    if (!user || !isMember || !result) return;
+    setSaveState('saving');
+    const { error: saveErr } = await supabase.from('saved_headlines').insert({
+      user_id: user.id,
+      headline: headline.trim(),
+      context: context.trim() || null,
+      score: result.score,
+      result,
+    });
+    setSaveState(saveErr ? 'idle' : 'saved');
+    if (!saveErr) setTimeout(() => setSaveState('idle'), 2500);
   }
 
   // Copy a rewrite so it can be pasted straight into Substack.
@@ -227,6 +291,22 @@ export default function HeadlineAnalyzer() {
                   )}
                 </div>
               </div>
+
+              {/* Members can keep an analysis to compare against later */}
+              {isMember && (
+                <button
+                  onClick={saveAnalysis}
+                  disabled={saveState !== 'idle'}
+                  className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-lg border border-orange-200 px-3 py-2 text-sm text-orange-700 transition hover:bg-orange-50 disabled:opacity-60"
+                >
+                  {saveState === 'saved' ? (
+                    <BookmarkCheck className="h-4 w-4" />
+                  ) : (
+                    <Bookmark className="h-4 w-4" />
+                  )}
+                  {saveState === 'saved' ? 'Saved to your account' : 'Save this analysis'}
+                </button>
+              )}
 
               {/* Per-axis breakdown */}
               <div className="mt-6 space-y-3 border-t border-gray-100 pt-5">
