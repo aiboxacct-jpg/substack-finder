@@ -46,6 +46,20 @@ function relativeTime(iso) {
   return `${Math.floor(diff / (365 * day))}y ago`;
 }
 
+// Turn a newsletter's last-post date into an activity signal for its card.
+// Green "Active" if it posted recently, amber "Quiet" if it's gone a while.
+// Returns null when there's no readable feed date (nothing to claim).
+function activity(iso) {
+  if (!iso) return null;
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return null;
+  const days = (Date.now() - then) / 86400000;
+  const when = relativeTime(iso);
+  if (days <= 45)
+    return { label: `Active · ${when}`, className: 'bg-green-100 text-green-700', dot: '#16a34a' };
+  return { label: `Quiet · ${when}`, className: 'bg-amber-100 text-amber-700', dot: '#d97706' };
+}
+
 // A newsletter's About page — where writers list contact info + the follow /
 // message options. Substack has no public per-writer DM link, so this is the
 // reliable place to reach out from.
@@ -454,12 +468,28 @@ export default function Home() {
                   key={i}
                   className="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-orange-300 hover:shadow-md"
                 >
-                  {/* Collaboration match score */}
-                  {Number.isFinite(Number(r.match)) && (
-                    <span className="mb-2 inline-block rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">
-                      {Math.round(Number(r.match))}% match
-                    </span>
-                  )}
+                  {/* Collaboration match score + activity signal */}
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    {Number.isFinite(Number(r.match)) && (
+                      <span className="inline-block rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">
+                        {Math.round(Number(r.match))}% match
+                      </span>
+                    )}
+                    {(() => {
+                      const a = activity(r.lastPostAt);
+                      return a ? (
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${a.className}`}
+                        >
+                          <span
+                            className="h-1.5 w-1.5 rounded-full"
+                            style={{ backgroundColor: a.dot }}
+                          />
+                          {a.label}
+                        </span>
+                      ) : null;
+                    })()}
+                  </div>
                   {/* Newsletter name links to the newsletter */}
                   <a
                     href={r.url}

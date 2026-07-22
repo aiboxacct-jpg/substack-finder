@@ -311,14 +311,28 @@ Output ONLY a raw JSON array of exactly 8 objects and nothing else — no preamb
       // link is worse than showing one fewer card. We ask for 8 so that a full
       // 6 normally survive this filter.
       const alive = results.filter((r) => !r.dead);
-      const dropped = results.length - alive.length;
-      if (dropped > 0) {
+      const deadCount = results.length - alive.length;
+
+      // Also drop clearly-abandoned newsletters (no post within ~6 months).
+      // Only when we actually have a last-post date; a match with no readable
+      // feed is kept rather than wrongly dropped. Answers real launch feedback
+      // that a match "hadn't posted since 2025" — bad for a collaboration tool.
+      const STALE_MS = 183 * 24 * 60 * 60 * 1000; // ~6 months
+      const now = Date.now();
+      const fresh = alive.filter((r) => {
+        if (!r.lastPostAt) return true; // no feed data — can't confirm, keep it
+        const t = Date.parse(r.lastPostAt);
+        return Number.isNaN(t) ? true : now - t <= STALE_MS;
+      });
+      const staleCount = alive.length - fresh.length;
+
+      if (deadCount || staleCount) {
         console.warn(
-          `Dropped ${dropped} dead match URL(s) for "${topic}":`,
-          results.filter((r) => r.dead).map((r) => r.url).join(', ')
+          `"${topic}": dropped ${deadCount} dead + ${staleCount} stale match(es).`
         );
       }
-      results = alive.slice(0, 6);
+
+      results = fresh.slice(0, 6);
       for (const r of results) delete r.dead;
 
       searchCache.set(cacheKey, {
