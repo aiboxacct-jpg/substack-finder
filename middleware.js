@@ -24,10 +24,31 @@ const HOST_ROUTES = {
   'headline.stacktools.site': '/headline',
 };
 
+// The admin dashboard's one canonical home. It is a route in the shared app,
+// so without this it would render on every domain; owner stats belong on the
+// hub, not on each tool. www rather than the apex because www is the primary
+// domain in Vercel (the apex 308s to it), making this the single-hop target.
+const ADMIN_HOME = 'https://www.stacktools.site';
+
+// Production hosts that hand /admin over to the hub. Localhost and Vercel
+// previews are deliberately absent, so local admin work stays local.
+const ADMIN_REDIRECT_HOSTS = new Set([
+  ...Object.keys(REDIRECT_HOSTS),
+  ...Object.keys(HOST_ROUTES),
+  'stacktools.site',
+]);
+
 export function middleware(request) {
   // Strip any port so localhost:3000 and previews behave predictably.
   const host = (request.headers.get('host') || '').split(':')[0].toLowerCase();
   const url = request.nextUrl;
+
+  // /admin lives on the hub only. Checked before the domain redirects so a
+  // substackfinder.site/admin bookmark goes straight there in one hop instead
+  // of chaining through finder.stacktools.site.
+  if (url.pathname.startsWith('/admin') && ADMIN_REDIRECT_HOSTS.has(host)) {
+    return NextResponse.redirect(new URL(url.pathname + url.search, ADMIN_HOME), 308);
+  }
 
   const redirectTo = REDIRECT_HOSTS[host];
   if (redirectTo) {
