@@ -37,6 +37,7 @@ export default function HeadlineAnalyzer() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [upgrade, setUpgrade] = useState(false);
+  const [signup, setSignup] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(null);
   const [user, setUser] = useState(null);
   const [isMember, setIsMember] = useState(false);
@@ -86,6 +87,7 @@ export default function HeadlineAnalyzer() {
     setLoading(true);
     setError('');
     setUpgrade(false);
+    setSignup(false);
     setResult(null);
     setSaveState('idle');
 
@@ -108,6 +110,7 @@ export default function HeadlineAnalyzer() {
       if (!res.ok || data.error) {
         setError(data.error || 'Something went wrong. Please try again.');
         setUpgrade(!!data.upgrade);
+        setSignup(!!data.signup);
       } else {
         setResult(data);
       }
@@ -247,24 +250,42 @@ export default function HeadlineAnalyzer() {
           </button>
         </form>
 
-        {/* Daily-limit upsell (a nudge, not an error) */}
-        {error && upgrade && !loading && (
+        {/* Limit reached: anonymous visitors are asked to sign up (bigger
+            allowance), registered ones to upgrade. */}
+        {error && (upgrade || signup) && !loading && (
           <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
             <div className="flex items-start gap-3 text-orange-800">
               <Sparkles className="mt-0.5 h-5 w-5 flex-shrink-0 text-orange-500" />
               <p className="text-sm">{error}</p>
             </div>
-            <button
-              onClick={() => window.dispatchEvent(new Event('open-membership'))}
-              className="mt-3 w-full rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
-            >
-              See what Membership includes
-            </button>
+            {signup ? (
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <button
+                  onClick={() => window.dispatchEvent(new Event('open-signup'))}
+                  className="flex-1 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
+                >
+                  Sign up free
+                </button>
+                <button
+                  onClick={() => window.dispatchEvent(new Event('open-membership'))}
+                  className="flex-1 rounded-lg border border-orange-300 px-4 py-2 text-sm font-medium text-orange-700 transition hover:bg-orange-100"
+                >
+                  See Membership
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => window.dispatchEvent(new Event('open-membership'))}
+                className="mt-3 w-full rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
+              >
+                See what Membership includes
+              </button>
+            )}
           </div>
         )}
 
         {/* Regular error banner */}
-        {error && !upgrade && !loading && (
+        {error && !upgrade && !signup && !loading && (
           <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
             <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0" />
             <p className="text-sm">{error}</p>

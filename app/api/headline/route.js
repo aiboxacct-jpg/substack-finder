@@ -1,5 +1,11 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { checkDailyCap, checkFreeLimit, formatWait } from '@/lib/rateLimit';
+import {
+  checkDailyCap,
+  checkFreeLimit,
+  formatWait,
+  hashIdentity,
+  FREE_LIMITS,
+} from '@/lib/rateLimit';
 import { getMembership, logToolRun, recordOutcome } from '@/lib/membership';
 import { buildPrompt, parseJsonObject, normalize } from '@/lib/headline';
 
@@ -41,14 +47,18 @@ export async function POST(request) {
     // Members are unlimited; free/anonymous users get a few analyses a day.
     const { user, isMember } = await getMembership(token);
     if (!isMember) {
-      const identity = user?.id || ip;
-      const free = checkFreeLimit(identity, 'headline');
+      const tier = user ? 'free' : 'anonymous';
+      const identity = user?.id || hashIdentity(ip);
+      const free = await checkFreeLimit(identity, 'headline', tier);
       if (!free.allowed) {
         const wait = formatWait(free.retryAfterMinutes);
         return Response.json(
           {
-            error: `You've used your 3 free analyses. More unlock in ${wait} — or upgrade to a Stack Tools membership for unlimited analyses across every tool.`,
-            upgrade: true,
+            error: user
+              ? `You've used your ${free.limit} free analyses. More unlock in ${wait} — or upgrade to a Stack Tools membership for unlimited analyses across every tool.`
+              : `You've used your ${free.limit} free analyses. Sign up free to get ${FREE_LIMITS.free} at a time, or upgrade for unlimited. More unlock in ${wait} either way.`,
+            signup: !user,
+            upgrade: !!user,
           },
           { status: 429 }
         );

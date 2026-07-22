@@ -1,5 +1,11 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { checkDailyCap, checkFreeLimit, formatWait } from '@/lib/rateLimit';
+import {
+  checkDailyCap,
+  checkFreeLimit,
+  formatWait,
+  hashIdentity,
+  FREE_LIMITS,
+} from '@/lib/rateLimit';
 import { getMembership, logToolRun, recordOutcome } from '@/lib/membership';
 import { createClient } from '@supabase/supabase-js';
 
@@ -117,16 +123,23 @@ export async function POST(request) {
     // Members get unlimited searches; free/anonymous users get a small taste.
     const { user, isMember } = await getMembership(token);
     if (!isMember) {
-      const identity = user?.id || ip;
-      const free = checkFreeLimit(identity, 'finder');
+      // Signing up moves you to a bigger allowance, so an anonymous visitor is
+      // asked to register and a registered one is asked to upgrade. Anonymous
+      // visitors are tracked by a salted hash of their IP, never the IP itself.
+      const tier = user ? 'free' : 'anonymous';
+      const identity = user?.id || hashIdentity(ip);
+      const free = await checkFreeLimit(identity, 'finder', tier);
       if (!free.allowed) {
         // Say when they can come back. "You've hit the limit" with no timeframe
         // reads like a wall; naming the wait reads like a queue.
         const wait = formatWait(free.retryAfterMinutes);
         return Response.json(
           {
-            error: `You've used your 3 free matches. More unlock in ${wait} — or upgrade to a Stack Tools membership for unlimited matches across every tool.`,
-            upgrade: true,
+            error: user
+              ? `You've used your ${free.limit} free matches. More unlock in ${wait} — or upgrade to a Stack Tools membership for unlimited matches across every tool.`
+              : `You've used your ${free.limit} free matches. Sign up free to get ${FREE_LIMITS.free} at a time, or upgrade for unlimited. More unlock in ${wait} either way.`,
+            signup: !user,
+            upgrade: !!user,
           },
           { status: 429 }
         );

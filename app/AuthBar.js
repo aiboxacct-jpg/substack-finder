@@ -30,12 +30,20 @@ export default function AuthBar() {
   const [showMembership, setShowMembership] = useState(false);
   const upgradeTriggered = useRef(false);
 
-  // Let other parts of the page (e.g. the daily-limit banner) open the
-  // membership modal by dispatching a window "open-membership" event.
+  // Let other parts of the page open these without prop-drilling:
+  //   "open-membership" -> the paid membership modal
+  //   "open-signup"     -> the log in / sign up form, used when an anonymous
+  //                        visitor hits their limit and registering would give
+  //                        them a bigger allowance
   useEffect(() => {
-    const handler = () => setShowMembership(true);
-    window.addEventListener('open-membership', handler);
-    return () => window.removeEventListener('open-membership', handler);
+    const membership = () => setShowMembership(true);
+    const signup = () => setOpen(true);
+    window.addEventListener('open-membership', membership);
+    window.addEventListener('open-signup', signup);
+    return () => {
+      window.removeEventListener('open-membership', membership);
+      window.removeEventListener('open-signup', signup);
+    };
   }, []);
 
   // Track the current session and keep it in sync.
