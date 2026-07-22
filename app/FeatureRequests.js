@@ -2,7 +2,17 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { detectTool } from '@/lib/links';
 import { Lightbulb, X, ChevronUp, Loader2, CheckCircle2, Trash2, RotateCcw } from 'lucide-react';
+
+// Requests are per tool: the board on the Finder shows and collects Finder
+// ideas only, likewise the Headline Analyzer. The hub shows the whole board
+// with a tag on each row. Detected once per open from the page's location.
+const TOOL_LABELS = {
+  finder: 'Finder',
+  headline: 'Headline',
+  general: 'All tools',
+};
 
 // The public feature-request board, available on every page as a floating
 // button. Visitors suggest ideas and upvote them; the most-wanted rise to the
@@ -42,8 +52,9 @@ export default function FeatureRequests() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const [voted, setVoted] = useState(new Set());
+  const [tool, setTool] = useState('general');
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (forTool) => {
     setLoading(true);
     try {
       const {
@@ -51,7 +62,7 @@ export default function FeatureRequests() {
       } = await supabase.auth.getSession();
       const headers = {};
       if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-      const res = await fetch('/api/features', { headers });
+      const res = await fetch(`/api/features?tool=${encodeURIComponent(forTool)}`, { headers });
       const data = await res.json();
       if (res.ok) {
         setItems(data.requests || []);
@@ -66,9 +77,11 @@ export default function FeatureRequests() {
 
   useEffect(() => {
     if (!open) return;
+    const t = detectTool();
+    setTool(t);
     setVoted(readVoted());
     setMsg('');
-    load();
+    load(t);
   }, [open, load]);
 
   async function addRequest(e) {
@@ -86,7 +99,7 @@ export default function FeatureRequests() {
       const res = await fetch('/api/features', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ title: t }),
+        body: JSON.stringify({ title: t, tool }),
       });
       const data = await res.json();
       if (!res.ok || data.error) {
@@ -185,7 +198,9 @@ export default function FeatureRequests() {
                   Feature requests
                 </h2>
                 <p className="mt-1 text-xs text-gray-500">
-                  Vote for what you want next. The most-wanted rise to the top.
+                  {tool === 'general'
+                    ? 'Across all Stack Tools. Vote for what you want next; the most-wanted rise to the top.'
+                    : `For the ${tool === 'finder' ? 'Substack Finder' : 'Headline Analyzer'}. Vote for what you want next; the most-wanted rise to the top.`}{' '}
                   Got an idea? Add it.
                 </p>
               </div>
@@ -260,13 +275,23 @@ export default function FeatureRequests() {
                           {item.votes}
                         </button>
 
-                        <p
-                          className={`min-w-0 flex-1 text-sm ${
-                            shipped ? 'text-gray-400 line-through' : 'text-gray-800'
-                          }`}
-                        >
-                          {item.title}
-                        </p>
+                        <div className="min-w-0 flex-1">
+                          <p
+                            className={`text-sm ${
+                              shipped ? 'text-gray-400 line-through' : 'text-gray-800'
+                            }`}
+                          >
+                            {item.title}
+                          </p>
+                          {/* On the hub the whole board is visible, so say
+                              which tool each idea belongs to. On a tool page
+                              every row is that tool, so the tag is noise. */}
+                          {tool === 'general' && item.tool && (
+                            <span className="mt-0.5 inline-block rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
+                              {TOOL_LABELS[item.tool] || item.tool}
+                            </span>
+                          )}
+                        </div>
 
                         {shipped && (
                           <span className="flex flex-shrink-0 items-center gap-1 rounded-md bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
