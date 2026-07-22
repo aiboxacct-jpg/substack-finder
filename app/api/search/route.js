@@ -19,28 +19,53 @@ const searchCache = new Map(); // normalized topic -> { results, expires }
 // For each newsletter, fetch its Substack RSS feed (…/feed) to get the latest
 // post titles + dates. Runs all feeds in parallel with a short timeout; any
 // feed that fails just leaves that card without posts (never breaks a search).
+// Returns true ONLY when the homepage itself 404s. Used as a second opinion
+// before discarding a match, so a publication with no working /feed survives.
+async function homepageMissing(origin) {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 4000);
+    const res = await fetch(origin, {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'StackTools/1.0 (+stacktools.site)' },
+    });
+    clearTimeout(timer);
+    return res.status === 404;
+  } catch {
+    return false; // unreachable is ambiguous, so keep the result
+  }
+}
+
 async function enrichWithLatestPosts(results) {
   await Promise.all(
     results.map(async (r) => {
       r.latestPosts = [];
       r.lastPostAt = null;
+      r.dead = false; // only set true when we positively confirm it does not exist
 
-      let feedUrl;
+      let origin;
       try {
-        feedUrl = new URL(r.url).origin + '/feed';
+        origin = new URL(r.url).origin;
       } catch {
-        return; // no valid URL
+        r.dead = true; // unparseable URL is unusable either way
+        return;
       }
 
       try {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), 4000);
-        const res = await fetch(feedUrl, {
+        const res = await fetch(origin + '/feed', {
           signal: controller.signal,
-          headers: { 'User-Agent': 'SubstackFinder/1.0 (+substack-finder.vercel.app)' },
+          headers: { 'User-Agent': 'StackTools/1.0 (+stacktools.site)' },
         });
         clearTimeout(timer);
-        if (!res.ok) return;
+        if (!res.ok) {
+          // A 404 feed usually means the model invented a near-miss subdomain
+          // (e.g. "thepennydeadful" instead of "thepennydreadful"). Confirm
+          // against the homepage before discarding.
+          if (res.status === 404) r.dead = await homepageMissing(origin);
+          return;
+        }
 
         const xml = await res.text();
         const items = xml.split('<item>').slice(1, 4); // up to 3 most recent
@@ -182,9 +207,9 @@ export async function POST(request) {
 
     // The prompt sent to Claude — the writer pastes their own Substack, and we
     // return other creators they could collaborate / cross-promote with.
-    const prompt = `You are helping a Substack writer find collaboration and cross-promotion partners. The writer's own Substack is: "${topic}". Use web search to identify what it is about (its niche, topic, and audience), then find 6 OTHER real, currently-active Substack newsletters in the same or an adjacent niche with a comparable audience — strong potential collaborators. Never include the writer's own Substack.
+    const prompt = `You are helping a Substack writer find collaboration and cross-promotion partners. The writer's own Substack is: "${topic}". Use web search to identify what it is about (its niche, topic, and audience), then find 8 OTHER real, currently-active Substack newsletters in the same or an adjacent niche with a comparable audience — strong potential collaborators. Never include the writer's own Substack.
 
-Output ONLY a raw JSON array of exactly 6 objects and nothing else — no preamble, no explanation, no markdown, no code fences. Each object must have: "name", "author" (or "" if unknown), "url" (the real Substack URL — do not invent), "description" (one sentence on why they'd be a good collaboration match, max ~20 words), "tag" (1-3 word overlap like "same niche" or "adjacent audience"), "match" (an integer from 70 to 98 = how strong a collaboration fit this is, where higher means a better match). Order the array from highest "match" to lowest. If you are unsure of the exact niche, infer it from the name/URL and still return 6 relevant, real newsletters.`;
+Output ONLY a raw JSON array of exactly 8 objects and nothing else — no preamble, no explanation, no markdown, no code fences. Each object must have: "name", "author" (or "" if unknown), "url" (the EXACT Substack URL exactly as it appears in your search results — never invent, guess, or "correct" a subdomain; a near-miss like "thepennydeadful" instead of "thepennydreadful" is a broken link, so if you are not certain of the exact URL, choose a different newsletter you ARE certain about), "description" (one sentence on why they'd be a good collaboration match, max ~20 words), "tag" (1-3 word overlap like "same niche" or "adjacent audience"), "match" (an integer from 70 to 98 = how strong a collaboration fit this is, where higher means a better match). Order the array from highest "match" to lowest. If you are unsure of the exact niche, infer it from the name/URL and still return 8 relevant, real newsletters.`;
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -244,7 +269,7 @@ Output ONLY a raw JSON array of exactly 6 objects and nothing else — no preamb
     if (!Array.isArray(results) || results.length === 0) {
       neededRetry = true;
       results = await attemptMatch(
-        `${prompt}\n\nIMPORTANT: a previous attempt failed by replying with prose instead of data. Reply with ONLY the JSON array. Do not explain, do not apologise, do not say you are unsure. If you cannot verify every detail, still return your 6 best real Substack newsletters based on what you do know.`
+        `${prompt}\n\nIMPORTANT: a previous attempt failed by replying with prose instead of data. Reply with ONLY the JSON array. Do not explain, do not apologise, do not say you are unsure. If you cannot verify every detail, still return your 8 best real Substack newsletters based on what you do know.`
       );
     }
 
@@ -280,6 +305,22 @@ Output ONLY a raw JSON array of exactly 6 objects and nothing else — no preamb
     // real, non-empty results so a bad/empty run isn't remembered.
     if (Array.isArray(results) && results.length > 0) {
       await enrichWithLatestPosts(results);
+
+      // Drop any match whose Substack does not actually exist. The model
+      // sometimes invents a near-miss subdomain, and a reader clicking a dead
+      // link is worse than showing one fewer card. We ask for 8 so that a full
+      // 6 normally survive this filter.
+      const alive = results.filter((r) => !r.dead);
+      const dropped = results.length - alive.length;
+      if (dropped > 0) {
+        console.warn(
+          `Dropped ${dropped} dead match URL(s) for "${topic}":`,
+          results.filter((r) => r.dead).map((r) => r.url).join(', ')
+        );
+      }
+      results = alive.slice(0, 6);
+      for (const r of results) delete r.dead;
+
       searchCache.set(cacheKey, {
         results,
         expires: Date.now() + CACHE_TTL_MS,
