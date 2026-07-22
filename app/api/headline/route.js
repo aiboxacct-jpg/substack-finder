@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { checkDailyCap, checkFreeDailyLimit } from '@/lib/rateLimit';
+import { checkDailyCap, checkFreeLimit, formatWait } from '@/lib/rateLimit';
 import { getMembership, logToolRun, recordOutcome } from '@/lib/membership';
 import { buildPrompt, parseJsonObject, normalize } from '@/lib/headline';
 
@@ -42,13 +42,12 @@ export async function POST(request) {
     const { user, isMember } = await getMembership(token);
     if (!isMember) {
       const identity = user?.id || ip;
-      const free = checkFreeDailyLimit(identity, 'headline');
+      const free = checkFreeLimit(identity, 'headline');
       if (!free.allowed) {
+        const wait = formatWait(free.retryAfterMinutes);
         return Response.json(
           {
-            error: user
-              ? "You've used your free headline analyses for today. Upgrade to a Stack Tools membership for unlimited analyses."
-              : "You've reached today's free limit. Sign up and upgrade for unlimited headline analyses.",
+            error: `You've used your 3 free analyses. More unlock in ${wait} — or upgrade to a Stack Tools membership for unlimited analyses across every tool.`,
             upgrade: true,
           },
           { status: 429 }

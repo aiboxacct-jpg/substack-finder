@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { checkDailyCap, checkFreeDailyLimit } from '@/lib/rateLimit';
+import { checkDailyCap, checkFreeLimit, formatWait } from '@/lib/rateLimit';
 import { getMembership, logToolRun, recordOutcome } from '@/lib/membership';
 import { createClient } from '@supabase/supabase-js';
 
@@ -118,13 +118,14 @@ export async function POST(request) {
     const { user, isMember } = await getMembership(token);
     if (!isMember) {
       const identity = user?.id || ip;
-      const free = checkFreeDailyLimit(identity, 'finder');
+      const free = checkFreeLimit(identity, 'finder');
       if (!free.allowed) {
+        // Say when they can come back. "You've hit the limit" with no timeframe
+        // reads like a wall; naming the wait reads like a queue.
+        const wait = formatWait(free.retryAfterMinutes);
         return Response.json(
           {
-            error: user
-              ? "You've used your free searches for today. Upgrade to a Stack Tools membership for unlimited searches."
-              : "You've reached today's free search limit. Sign up and upgrade for unlimited searches.",
+            error: `You've used your 3 free matches. More unlock in ${wait} — or upgrade to a Stack Tools membership for unlimited matches across every tool.`,
             upgrade: true,
           },
           { status: 429 }
