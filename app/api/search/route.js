@@ -218,12 +218,25 @@ Output ONLY a raw JSON array of exactly 8 objects and nothing else — no preamb
     // below exists to handle.
     async function attemptMatch(promptText) {
       const requestParams = {
-        // Haiku 4.5 is ~3x cheaper than Sonnet ($1/$5 vs $3/$15 per M tokens).
-        // Haiku doesn't support the newer web_search_20260209, so we use the
-        // standard web_search_20250305 variant here.
-        model: 'claude-haiku-4-5',
-        max_tokens: 2000,
-        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }],
+        // A/B TEST (started 2026-07-22): Sonnet 5 instead of Haiku 4.5, to see
+        // if a smarter model cuts the ~50% prose-retry rate and the near-miss
+        // URL problem (e.g. "deadful" vs "dreadful"). Costs ~3x more per token
+        // ($3/$15 vs $1/$5, intro $2/$10 through 2026-08-31), partly offset by
+        // fewer double-call retries. Measure via the searches outcome log after
+        // a day (ok vs ok_retry vs failed), then keep or revert to Haiku.
+        //   - Sonnet 5 supports the newer web_search_20260209 (dynamic
+        //     filtering), which pre-filters results before they hit the model —
+        //     better accuracy and fewer wasted tokens.
+        //   - thinking is disabled on purpose: Sonnet 5 runs adaptive thinking
+        //     by DEFAULT when the field is omitted, which would spend tokens
+        //     out of max_tokens (risking a truncated JSON array) and multiply
+        //     cost. Disabling it tests Sonnet's raw ability and keeps cost/
+        //     latency predictable. max_tokens bumped 2000 -> 3000 because
+        //     Sonnet 5's tokenizer produces ~30% more tokens for the same JSON.
+        model: 'claude-sonnet-5',
+        max_tokens: 3000,
+        thinking: { type: 'disabled' },
+        tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 3 }],
         messages: [{ role: 'user', content: promptText }],
       };
 
