@@ -10,6 +10,7 @@ import {
   Lock,
   LogOut,
   Search,
+  RefreshCw,
 } from 'lucide-react';
 
 function fmtDate(iso) {
@@ -68,6 +69,7 @@ export default function AdminPage() {
   const [status, setStatus] = useState('loading'); // loading | needlogin | denied | error | ready
   const [data, setData] = useState(null);
   const [searches, setSearches] = useState([]);
+  const [searchesBusy, setSearchesBusy] = useState(false);
 
   // Login form
   const [email, setEmail] = useState('');
@@ -105,16 +107,21 @@ export default function AdminPage() {
   }
 
   async function loadSearches() {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session) return;
-    const res = await fetch('/api/admin/searches', {
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    });
-    if (res.ok) {
-      const d = await res.json();
-      setSearches(d.searches || []);
+    setSearchesBusy(true);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) return;
+      const res = await fetch('/api/admin/searches', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (res.ok) {
+        const d = await res.json();
+        setSearches(d.searches || []);
+      }
+    } finally {
+      setSearchesBusy(false);
     }
   }
 
@@ -311,6 +318,15 @@ export default function AdminPage() {
             <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
               {searches.length}
             </span>
+            <button
+              onClick={loadSearches}
+              disabled={searchesBusy}
+              title="Refresh tool usage"
+              className="ml-auto flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${searchesBusy ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
           </div>
           <p className="mb-3 text-xs text-gray-400">
             What people are running through each tool (most recent first).
