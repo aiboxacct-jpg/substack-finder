@@ -9,6 +9,14 @@ import {
 import { getMembership, logToolRun, recordOutcome } from '@/lib/membership';
 import { buildPrompt, parseJsonObject, normalize } from '@/lib/headline';
 
+// See app/api/search/route.js for the full reasoning. In short: cap how long the
+// function may run (no maxDuration = Vercel's short default = a slow run hangs
+// the browser), and time out the model call so a slow one throws a friendly
+// error instead of spinning. This route is a single fast Haiku call with no web
+// search, so it never comes close — this is defense-in-depth for consistency.
+export const maxDuration = 60;
+const ANTHROPIC_TIMEOUT_MS = 45000;
+
 // Same 24h in-memory cache idea as the Finder: re-analysing an identical
 // headline costs nothing and returns instantly. Per-server-instance, resets on
 // restart — fine as a speed-up, not a guarantee.
@@ -99,7 +107,10 @@ export async function POST(request) {
     // which is why an analysis costs a fraction of a cent instead of ~7¢.
     const prompt = buildPrompt(headline, context);
 
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+      timeout: ANTHROPIC_TIMEOUT_MS,
+    });
 
     const response = await anthropic.messages.create({
       // Haiku 4.5 with no tools — a full analysis is well under a cent.

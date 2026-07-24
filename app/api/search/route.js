@@ -9,6 +9,20 @@ import {
 import { getMembership, logToolRun, recordOutcome } from '@/lib/membership';
 import { createClient } from '@supabase/supabase-js';
 
+// How long Vercel lets this function run before killing it. Without this it
+// falls back to Vercel's short default, so a slow AI run gets cut off mid-flight
+// and the browser spins forever with no response (this is exactly what the
+// Sonnet 5 experiment hit). 60s is the max on Hobby and safe on Pro; Haiku
+// finishes in ~11s, so this is generous headroom. If a slower model is ever
+// used here, raise this (Pro only) AND lower it below the client timeout below.
+export const maxDuration = 60;
+
+// If a single model call runs longer than this, the SDK throws instead of
+// hanging — the catch block then returns a friendly "try again" message rather
+// than the request outliving the function and leaving the user stuck. Kept
+// under maxDuration on purpose so we fail cleanly before Vercel hard-kills us.
+const ANTHROPIC_TIMEOUT_MS = 45000;
+
 // Simple in-memory cache: a topic's results are reused for 24 hours so repeat
 // (and popular) searches return instantly and cost nothing. Like the rate
 // limiter, this is per-server-instance and resets on restart — fine as a
@@ -211,7 +225,10 @@ export async function POST(request) {
 
 Output ONLY a raw JSON array of exactly 8 objects and nothing else — no preamble, no explanation, no markdown, no code fences. Each object must have: "name", "author" (or "" if unknown), "url" (the EXACT Substack URL exactly as it appears in your search results — never invent, guess, or "correct" a subdomain; a near-miss like "thepennydeadful" instead of "thepennydreadful" is a broken link, so if you are not certain of the exact URL, choose a different newsletter you ARE certain about), "description" (one sentence on why they'd be a good collaboration match, max ~20 words), "tag" (1-3 word overlap like "same niche" or "adjacent audience"), "match" (an integer from 70 to 98 = how strong a collaboration fit this is, where higher means a better match). Order the array from highest "match" to lowest. If you are unsure of the exact niche, infer it from the name/URL and still return 8 relevant, real newsletters.`;
 
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+      timeout: ANTHROPIC_TIMEOUT_MS,
+    });
 
     // Ask the model once and pull a JSON array out of the reply. Returns null
     // if it answered in prose instead of data, which is the failure the retry
