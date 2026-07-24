@@ -221,9 +221,23 @@ export async function POST(request) {
 
     // The prompt sent to Claude — the writer pastes their own Substack, and we
     // return other creators they could collaborate / cross-promote with.
-    const prompt = `You are helping a Substack writer find collaboration and cross-promotion partners. The writer's own Substack is: "${topic}". Use web search to identify what it is about (its niche, topic, and audience), then find 8 OTHER real, currently-active Substack newsletters in the same or an adjacent niche with a comparable audience — strong potential collaborators. Never include the writer's own Substack.
+    const prompt = `You are helping a Substack writer find collaboration and cross-promotion partners. The writer's own Substack is: "${topic}". Use web search to identify its niche, topic, and audience, then find 8 OTHER real, currently-active Substack newsletters in the same or an adjacent niche with a comparable audience — strong potential collaborators. Never include the writer's own Substack.
 
-Output ONLY a raw JSON array of exactly 8 objects and nothing else — no preamble, no explanation, no markdown, no code fences. Each object must have: "name", "author" (or "" if unknown), "url" (the EXACT Substack URL exactly as it appears in your search results — never invent, guess, or "correct" a subdomain; a near-miss like "thepennydeadful" instead of "thepennydreadful" is a broken link, so if you are not certain of the exact URL, choose a different newsletter you ARE certain about), "description" (one sentence on why they'd be a good collaboration match, max ~20 words), "tag" (1-3 word overlap like "same niche" or "adjacent audience"), "match" (an integer from 70 to 98 = how strong a collaboration fit this is, where higher means a better match). Order the array from highest "match" to lowest. If you are unsure of the exact niche, infer it from the name/URL and still return 8 relevant, real newsletters.`;
+CRITICAL — how to respond:
+- Respond with ONLY a raw JSON array of exactly 8 objects. Nothing else: no preamble, no explanation, no markdown, no code fences, no apology, and no note about uncertainty.
+- NEVER reply in prose. Even if web search returns little about the writer's own newsletter, infer its niche from the name/URL and still return your 8 best real, relevant Substacks. A thin search is never a reason to explain yourself instead of answering — there is always a usable answer.
+- Begin your reply with the character [ and end it with the character ].
+
+Each object must have exactly these keys:
+- "name": the newsletter's name
+- "author": the author's name, or "" if unknown
+- "url": the EXACT Substack URL as it appears in your search results. Never invent, guess, or "correct" a subdomain — a near-miss like "thepennydeadful" instead of "thepennydreadful" is a broken link. If you are not certain of the exact URL, pick a different newsletter you ARE certain about.
+- "description": one sentence (max ~20 words) on why they'd be a good collaboration match
+- "tag": a 1-3 word overlap, e.g. "same niche" or "adjacent audience"
+- "match": an integer 70-98 for how strong a collaboration fit this is (higher = better)
+
+Order the array from highest "match" to lowest. This is the exact shape to return — use real newsletters, NOT these placeholder values:
+[{"name":"Example Newsletter","author":"Jane Doe","url":"https://example.substack.com","description":"Covers the same niche with a similarly engaged, comparable-sized audience.","tag":"same niche","match":92}]`;
 
     const anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY,
