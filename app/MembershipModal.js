@@ -12,7 +12,7 @@ import {
   Loader2,
   LogIn,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
 // The "here's what you get" upsell. Opened from the Subscribe button, a
@@ -32,12 +32,10 @@ export default function MembershipModal({
   const [authBusy, setAuthBusy] = useState(false);
   const [authMsg, setAuthMsg] = useState('');
 
-  // Members have no reason to see the membership pitch — close it for them.
-  useEffect(() => {
-    if (open && subscribed) onClose();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, subscribed]);
-
+  // Note: we deliberately do NOT auto-close for members. If a member opens this
+  // (e.g. clicks "See what Membership includes"), they should see the modal —
+  // it shows a "You're a member — thank you!" state below. Members never hit a
+  // limit, so nothing opens this on them automatically; only an explicit click.
   if (!open) return null;
 
   async function handleUpgrade() {
