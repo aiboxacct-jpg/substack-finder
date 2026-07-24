@@ -565,6 +565,34 @@ export default function Home() {
                 </div>
               ))}
             </div>
+
+            {/* Bottom share nudge. The toolbar Share button is easy to miss
+                after scrolling the cards, so catch readers at the end where a
+                shared result becomes free distribution to another writer. */}
+            <div className="mt-6 flex flex-col items-center gap-1.5 rounded-2xl border border-orange-200 bg-orange-50 p-5 text-center">
+              <p className="text-sm font-semibold text-orange-900">
+                Know a writer who&apos;d want their own match list?
+              </p>
+              <p className="text-xs text-orange-700">
+                Share these results. Free and instant for whoever opens the link.
+              </p>
+              <button
+                onClick={shareResults}
+                disabled={shareState !== 'idle'}
+                className="mt-2 flex items-center gap-1.5 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:opacity-60"
+              >
+                {shareState === 'copied' ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Share2 className="h-4 w-4" />
+                )}
+                {shareState === 'saving'
+                  ? 'Creating…'
+                  : shareState === 'copied'
+                    ? 'Link copied!'
+                    : 'Share these results'}
+              </button>
+            </div>
           </>
         )}
 

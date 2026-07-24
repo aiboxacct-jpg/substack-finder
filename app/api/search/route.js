@@ -175,8 +175,8 @@ export async function POST(request) {
         return Response.json(
           {
             error: user
-              ? `You've used your ${free.limit} free matches. More unlock in ${wait} — or upgrade to a Stack Tools membership for unlimited matches across every tool.`
-              : `You've used your ${free.limit} free matches. Sign up free to get ${FREE_LIMITS.free} at a time, or upgrade for unlimited. More unlock in ${wait} either way.`,
+              ? `You've used your ${free.limit} free matches. More unlock in ${wait}. Or go unlimited now: a $9.99/mo Stack Tools membership unlocks every tool, saved searches, and a weekly email of fresh matches.`
+              : `You've used your ${free.limit} free matches. More unlock in ${wait}. Sign up free for ${FREE_LIMITS.free} at a time, or go unlimited with a $9.99/mo membership: every tool, saved searches, and a weekly match email.`,
             signup: !user,
             upgrade: !!user,
           },
@@ -189,7 +189,7 @@ export async function POST(request) {
         return Response.json(
           {
             error:
-              'This site has hit its daily free-search limit. Please check back tomorrow — or upgrade for unlimited searches.',
+              'This site has hit its daily free-search limit. Check back tomorrow, or skip the wait with a $9.99/mo membership: unlimited use of every Stack Tool.',
             upgrade: true,
           },
           { status: 429 }
