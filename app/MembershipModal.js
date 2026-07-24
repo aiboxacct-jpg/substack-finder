@@ -4,8 +4,9 @@ import {
   Sparkles,
   X,
   Check,
-  Search,
+  Zap,
   Bookmark,
+  Gift,
   Mail,
   Rocket,
   Loader2,
@@ -87,19 +88,24 @@ export default function MembershipModal({
 
   const perks = [
     {
-      icon: Search,
-      title: 'Unlimited searches',
-      desc: 'No daily limit — search as much as you want.',
+      icon: Zap,
+      title: 'Unlimited use of every tool',
+      desc: 'No daily limits on Substack Finder, the Headline Analyzer, or anything else in the suite.',
     },
     {
       icon: Bookmark,
-      title: 'Save your searches',
-      desc: 'Bookmark searches and re-run them anytime.',
+      title: 'Save your work',
+      desc: 'Bookmark and re-run your searches, and keep your saved headlines to reuse anytime.',
+    },
+    {
+      icon: Gift,
+      title: 'First access to new tools',
+      desc: 'Every new Stack Tool unlocks automatically the day it ships — no extra cost, ever.',
     },
     {
       icon: Mail,
       title: 'Email me these (coming soon)',
-      desc: 'Get fresh newsletters for your saved topics in your inbox.',
+      desc: 'Fresh newsletter matches for your saved searches, delivered to your inbox.',
     },
   ];
 
