@@ -218,25 +218,17 @@ Output ONLY a raw JSON array of exactly 8 objects and nothing else — no preamb
     // below exists to handle.
     async function attemptMatch(promptText) {
       const requestParams = {
-        // A/B TEST (started 2026-07-22): Sonnet 5 instead of Haiku 4.5, to see
-        // if a smarter model cuts the ~50% prose-retry rate and the near-miss
-        // URL problem (e.g. "deadful" vs "dreadful"). Costs ~3x more per token
-        // ($3/$15 vs $1/$5, intro $2/$10 through 2026-08-31), partly offset by
-        // fewer double-call retries. Measure via the searches outcome log after
-        // a day (ok vs ok_retry vs failed), then keep or revert to Haiku.
-        //   - Sonnet 5 supports the newer web_search_20260209 (dynamic
-        //     filtering), which pre-filters results before they hit the model —
-        //     better accuracy and fewer wasted tokens.
-        //   - thinking is disabled on purpose: Sonnet 5 runs adaptive thinking
-        //     by DEFAULT when the field is omitted, which would spend tokens
-        //     out of max_tokens (risking a truncated JSON array) and multiply
-        //     cost. Disabling it tests Sonnet's raw ability and keeps cost/
-        //     latency predictable. max_tokens bumped 2000 -> 3000 because
-        //     Sonnet 5's tokenizer produces ~30% more tokens for the same JSON.
-        model: 'claude-sonnet-5',
-        max_tokens: 3000,
-        thinking: { type: 'disabled' },
-        tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 3 }],
+        // REVERTED 2026-07-23 to Haiku 4.5 after the Sonnet 5 A/B made the
+        // finder hang. Sonnet 5 + web_search_20260209 (dynamic filtering runs
+        // server-side code execution) took 56-153s per run — with no route
+        // maxDuration it outlived Vercel's timeout, so the tool spun forever.
+        // Haiku 4.5 + the basic web_search_20250305 = ~11s, known-good.
+        // To retry Sonnet safely next time: use the BASIC web_search_20250305
+        // (skips the slow filtering step), add `export const maxDuration`, and
+        // measure latency before pointing real traffic at it.
+        model: 'claude-haiku-4-5',
+        max_tokens: 2000,
+        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }],
         messages: [{ role: 'user', content: promptText }],
       };
 
