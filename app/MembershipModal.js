@@ -102,8 +102,8 @@ export default function MembershipModal({
     },
     {
       icon: Mail,
-      title: 'Email me these (coming soon)',
-      desc: 'Fresh newsletter matches for your saved searches, delivered to your inbox.',
+      title: 'Email me these',
+      desc: 'Fresh collaboration matches for your saved searches, delivered to your inbox every week.',
     },
   ];
 
