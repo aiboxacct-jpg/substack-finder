@@ -11,6 +11,9 @@ import {
   LogOut,
   Search,
   RefreshCw,
+  CalendarDays,
+  FileText,
+  MessageSquare,
 } from 'lucide-react';
 
 function fmtDate(iso) {
@@ -65,11 +68,209 @@ function OutcomeBadge({ outcome, count }) {
   );
 }
 
+// Static snapshot of content-calendar.md. This is a VIEW only — it does not
+// auto-update from the markdown file, so refresh it here when content changes.
+// Kept as structured data so a future DB-backed version is a drop-in swap.
+const CALENDAR = {
+  updated: '2026-08-01',
+  postsLive: [
+    {
+      title: 'Meet Substack Finder — a matching system for newsletter writers',
+      meta: '2026-07-19 · Tool Spotlight',
+      link: 'https://stacktools.substack.com/p/meet-substack-finder-a-matching-system',
+    },
+    {
+      title: 'I built a headline tool. Then I caught it inventing my success.',
+      meta: '2026-07-26 · Freeform',
+      link: 'https://stacktools.substack.com/p/i-built-a-headline-tool-then-i-caught',
+    },
+  ],
+  postsIdeas: [
+    { title: 'How writer-matching on Stack Tools will work', meta: 'Tool Spotlight · progress update' },
+    { title: "Why I'm building tools for newsletter writers", meta: 'Freeform · founder story' },
+    { title: 'First results from the matching system', meta: 'placeholder · needs a validation step' },
+    { title: 'Free tool teardown: what makes a "simple newsletter tool" worth building', meta: 'Freeform · educational' },
+    { title: 'Behind the URL UTM Builder (concept teaser)', meta: 'Tool Spotlight · when build starts' },
+    { title: 'Everything I got wrong building Stack Tools so far', meta: 'Freeform · retrospective' },
+  ],
+  notesPosted: [
+    { title: 'Note 2 — the near-miss link lesson 💡', meta: '2026-07-23 · build-in-public' },
+    { title: 'Future-tools teaser — reader vote 🔜', meta: '2026-07-26 · Roast / Pricing / Battle' },
+    { title: 'Note 3 — clean promo 🛠️', meta: '2026-08-01 · Finder promo' },
+  ],
+  notesReady: [
+    { title: 'Note 4 — the headline-tool hallucination 💡', meta: 'from Post #8 · headline.stacktools.site' },
+  ],
+  community: [
+    {
+      title: 'Substack comment — praise + grace on bugs',
+      meta: '2026-07-26',
+      quote: 'I appreciate tools that will help screen out what I need from the masses.',
+    },
+  ],
+  todos: [
+    'Confirm posting cadence (weekly vs milestone-driven).',
+    'Define the validation step that feeds the "first results" post.',
+    'Upload the Notes skill, generate the next batch.',
+  ],
+};
+
+function CalChip({ tone, children }) {
+  const tones = {
+    live: 'bg-green-100 text-green-700',
+    ready: 'bg-amber-100 text-amber-700',
+    idea: 'bg-gray-100 text-gray-500',
+    accent: 'bg-orange-100 text-orange-700',
+  };
+  return (
+    <span
+      className={`mt-0.5 flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+        tones[tone] || tones.idea
+      }`}
+    >
+      {children}
+    </span>
+  );
+}
+
+function CalItem({ tone, chip, title, meta, link }) {
+  return (
+    <li className="flex items-start gap-3 rounded-xl border border-gray-200 bg-white p-3">
+      <CalChip tone={tone}>{chip}</CalChip>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium text-gray-900">{title}</p>
+        <p className="mt-0.5 text-xs text-gray-500">
+          {meta}
+          {link && (
+            <>
+              {' · '}
+              <a
+                href={link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-orange-600 hover:underline"
+              >
+                read →
+              </a>
+            </>
+          )}
+        </p>
+      </div>
+    </li>
+  );
+}
+
+function GroupLabel({ children }) {
+  return (
+    <p className="mb-2 mt-4 text-xs font-medium uppercase tracking-wide text-gray-400 first:mt-0">
+      {children}
+    </p>
+  );
+}
+
+function ContentCalendar() {
+  const c = CALENDAR;
+  return (
+    <div className="mt-6 space-y-9">
+      <p className="text-xs text-gray-400">
+        A snapshot of the content plan. Static view — updated {c.updated}.
+      </p>
+
+      {/* Posts */}
+      <section>
+        <div className="mb-1 flex items-center gap-2">
+          <FileText className="h-5 w-5 text-gray-500" />
+          <h2 className="text-lg font-semibold text-gray-900">Posts</h2>
+          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+            {c.postsLive.length} live · {c.postsIdeas.length} ideas
+          </span>
+        </div>
+        <GroupLabel>Published</GroupLabel>
+        <ul className="space-y-2">
+          {c.postsLive.map((p, i) => (
+            <CalItem key={i} tone="live" chip="Live" title={p.title} meta={p.meta} link={p.link} />
+          ))}
+        </ul>
+        <GroupLabel>Ideas</GroupLabel>
+        <ul className="space-y-2">
+          {c.postsIdeas.map((p, i) => (
+            <CalItem key={i} tone="idea" chip="Idea" title={p.title} meta={p.meta} />
+          ))}
+        </ul>
+      </section>
+
+      {/* Notes */}
+      <section>
+        <div className="mb-1 flex items-center gap-2">
+          <MessageSquare className="h-5 w-5 text-gray-500" />
+          <h2 className="text-lg font-semibold text-gray-900">Notes</h2>
+          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+            {c.notesPosted.length} posted · {c.notesReady.length} ready
+          </span>
+        </div>
+        <GroupLabel>Posted</GroupLabel>
+        <ul className="space-y-2">
+          {c.notesPosted.map((n, i) => (
+            <CalItem key={i} tone="live" chip="Posted" title={n.title} meta={n.meta} />
+          ))}
+        </ul>
+        <GroupLabel>Ready to post</GroupLabel>
+        <ul className="space-y-2">
+          {c.notesReady.map((n, i) => (
+            <CalItem key={i} tone="ready" chip="Ready" title={n.title} meta={n.meta} />
+          ))}
+        </ul>
+      </section>
+
+      {/* Community */}
+      <section>
+        <div className="mb-3 flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-gray-500" />
+          <h2 className="text-lg font-semibold text-gray-900">Community &amp; social proof</h2>
+        </div>
+        <ul className="space-y-2">
+          {c.community.map((m, i) => (
+            <li key={i} className="rounded-xl border border-gray-200 bg-white p-3">
+              <div className="flex items-center gap-2">
+                <CalChip tone="accent">Reply sent</CalChip>
+                <p className="text-sm font-medium text-gray-900">{m.title}</p>
+                <span className="ml-auto flex-shrink-0 text-xs text-gray-400">{m.meta}</span>
+              </div>
+              <blockquote className="mt-2 border-l-2 border-orange-300 bg-orange-50 px-3 py-2 text-sm italic text-gray-700">
+                &ldquo;{m.quote}&rdquo;
+              </blockquote>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {/* To-dos */}
+      <section>
+        <h2 className="mb-3 text-lg font-semibold text-gray-900">Content to-dos</h2>
+        <ul className="space-y-1.5 rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-600">
+          {c.todos.map((t, i) => (
+            <li key={i} className="flex gap-2">
+              <span className="text-orange-500">–</span>
+              <span>{t}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <p className="text-xs text-gray-400">
+        This mirrors content-calendar.md at a point in time. It won&apos;t change when you post
+        — ask to refresh it after new posts or Notes.
+      </p>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const [status, setStatus] = useState('loading'); // loading | needlogin | denied | error | ready
   const [data, setData] = useState(null);
   const [searches, setSearches] = useState([]);
   const [searchesBusy, setSearchesBusy] = useState(false);
+  const [view, setView] = useState('dashboard'); // dashboard | calendar
 
   // Login form
   const [email, setEmail] = useState('');
@@ -247,6 +448,36 @@ export default function AdminPage() {
           </button>
         </div>
 
+        {/* View tabs */}
+        <div className="mt-5 flex gap-1 border-b border-gray-200">
+          <button
+            onClick={() => setView('dashboard')}
+            className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition ${
+              view === 'dashboard'
+                ? 'border-orange-500 text-orange-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Users className="h-4 w-4" />
+            Dashboard
+          </button>
+          <button
+            onClick={() => setView('calendar')}
+            className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition ${
+              view === 'calendar'
+                ? 'border-orange-500 text-orange-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <CalendarDays className="h-4 w-4" />
+            Content Calendar
+          </button>
+        </div>
+
+        {view === 'calendar' && <ContentCalendar />}
+
+        {view === 'dashboard' && (
+          <>
         {/* Summary cards */}
         <div className="mt-6 grid grid-cols-3 gap-3">
           <div className="rounded-xl border border-gray-200 bg-white p-4">
@@ -373,6 +604,8 @@ export default function AdminPage() {
             </div>
           )}
         </div>
+          </>
+        )}
       </div>
     </main>
   );
