@@ -66,11 +66,6 @@ export default function Hub() {
             Small, sharp tools for Substack writers. One login, one membership,
             every tool.
           </p>
-          <p className="mt-2">
-            <span className="inline-block rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-400">
-              test
-            </span>
-          </p>
         </header>
 
         {/* The tools */}
