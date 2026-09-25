@@ -27,5 +27,3 @@ hour) to protect the owner's bill.
 - `app/page.js` — the front-end UI (search box, pills, result cards)
 - `app/api/search/route.js` — the back-end route that calls Claude
 - `lib/rateLimit.js` — the per-IP rate limiter
-
-test
