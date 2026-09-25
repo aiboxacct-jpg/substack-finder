@@ -295,9 +295,6 @@ export default function Home() {
           <h1 className="text-4xl font-bold tracking-tight text-gray-900">
             Substack Finder
           </h1>
-          <p className="mt-2 text-sm font-semibold text-orange-600">
-            test
-          </p>
           <p className="mt-3 text-gray-600">
             Paste your Substack. Find the creators you should know and collaborate with.
           </p>
