@@ -62,9 +62,6 @@ export default function Hub() {
           <h1 className="text-4xl font-bold tracking-tight text-gray-900">
             Stack Tools
           </h1>
-          <p className="mt-2 text-sm font-semibold text-orange-600">
-            test
-          </p>
           <p className="mt-3 text-gray-600">
             Small, sharp tools for Substack writers. One login, one membership,
             every tool.
