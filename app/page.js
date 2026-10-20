@@ -29,7 +29,6 @@ const TOOLS = [
     href: '/headline',
     icon: Wand2,
     live: true,
-    isNew: true,
   },
 ];
 
