@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import LiveCalendar from './LiveCalendar';
+import RepliesFeed from './RepliesFeed';
 import {
   Users,
   Sparkles,
@@ -13,6 +14,7 @@ import {
   Search,
   RefreshCw,
   CalendarDays,
+  MessageSquare,
 } from 'lucide-react';
 
 function fmtDate(iso) {
@@ -72,7 +74,7 @@ export default function AdminPage() {
   const [data, setData] = useState(null);
   const [searches, setSearches] = useState([]);
   const [searchesBusy, setSearchesBusy] = useState(false);
-  const [view, setView] = useState('dashboard'); // dashboard | calendar
+  const [view, setView] = useState('dashboard'); // dashboard | calendar | replies
 
   // Login form
   const [email, setEmail] = useState('');
@@ -274,9 +276,21 @@ export default function AdminPage() {
             <CalendarDays className="h-4 w-4" />
             Content Calendar
           </button>
+          <button
+            onClick={() => setView('replies')}
+            className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition ${
+              view === 'replies'
+                ? 'border-orange-500 text-orange-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <MessageSquare className="h-4 w-4" />
+            Replies
+          </button>
         </div>
 
         {view === 'calendar' && <LiveCalendar />}
+        {view === 'replies' && <RepliesFeed />}
 
         {view === 'dashboard' && (
           <>
