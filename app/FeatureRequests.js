@@ -75,6 +75,18 @@ export default function FeatureRequests() {
     }
   }, []);
 
+  // Deep link: any page opened with ?ideas=1 (e.g. from a Substack Note)
+  // opens the board straight away, so readers land on the request box
+  // instead of hunting for the corner button. Other params (utm_*) are left
+  // untouched so analytics still sees them.
+  useEffect(() => {
+    try {
+      if (new URLSearchParams(window.location.search).get('ideas') === '1') {
+        setOpen(true);
+      }
+    } catch {}
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     const t = detectTool();
