@@ -9,6 +9,7 @@ import { Loader2, Plus, Pencil, Trash2, X, RefreshCw } from 'lucide-react';
 
 const STATUSES = [
   { id: 'scheduled', label: 'Scheduled', style: 'bg-blue-100 text-blue-700' },
+  { id: 'approved', label: 'Approved', style: 'bg-purple-100 text-purple-700' },
   { id: 'draft', label: 'Draft', style: 'bg-amber-100 text-amber-700' },
   { id: 'idea', label: 'Idea', style: 'bg-gray-100 text-gray-500' },
   { id: 'live', label: 'Live', style: 'bg-green-100 text-green-700' },

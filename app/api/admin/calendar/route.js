@@ -5,7 +5,7 @@ import { getAdminUser } from '@/lib/membership';
 // Gated on ADMIN_EMAIL like every other admin route.
 
 const KINDS = ['note', 'reply', 'post'];
-const STATUSES = ['idea', 'draft', 'scheduled', 'live'];
+const STATUSES = ['idea', 'draft', 'approved', 'scheduled', 'live'];
 const FIELDS = ['kind', 'status', 'title', 'body', 'link', 'campaign', 'scheduled_for', 'posted_at', 'notes'];
 
 function db() {
