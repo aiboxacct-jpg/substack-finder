@@ -4,7 +4,7 @@ import { getAdminUser } from '@/lib/membership';
 // Live content calendar: list, add, edit, delete Notes / replies / posts.
 // Gated on ADMIN_EMAIL like every other admin route.
 
-const KINDS = ['note', 'reply', 'post'];
+const KINDS = ['note', 'reply', 'post', 'build'];
 const STATUSES = ['idea', 'draft', 'approved', 'scheduled', 'live'];
 const FIELDS = ['kind', 'status', 'title', 'body', 'link', 'campaign', 'scheduled_for', 'posted_at', 'notes'];
 

@@ -18,6 +18,7 @@ const KINDS = [
   { id: 'note', label: 'Note' },
   { id: 'reply', label: 'Reply' },
   { id: 'post', label: 'Post' },
+  { id: 'build', label: 'Build' },
 ];
 const EMPTY = {
   kind: 'note',

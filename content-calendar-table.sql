@@ -1,12 +1,12 @@
 -- Live content calendar for the admin page (replaces the hard-coded Aug 1
--- snapshot). One row per Note, reply, or post: idea -> draft -> approved -> scheduled ->
+-- snapshot). One row per Note, reply, post, or planned build: idea -> draft -> approved -> scheduled ->
 -- live. RLS is ON with no policies, so the browser never touches this table
 -- directly; reads and writes go through /api/admin/calendar (ADMIN_EMAIL gate)
 -- using the service key.
 
 create table if not exists public.content_calendar (
   id             uuid primary key default gen_random_uuid(),
-  kind           text not null default 'note',   -- note | reply | post
+  kind           text not null default 'note',   -- note | reply | post | build
   status         text not null default 'idea',   -- idea | draft | approved | scheduled | live
   title          text not null,                  -- short label shown in the list
   body           text,                           -- draft text (optional)
