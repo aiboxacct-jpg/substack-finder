@@ -21,6 +21,14 @@ const KINDS = [
   { id: 'build', label: 'Build', style: 'bg-indigo-100 text-indigo-700' },
 ];
 const UNKNOWN_KIND_STYLE = 'bg-gray-100 text-gray-500';
+const KNOWN_KIND_IDS = new Set(KINDS.map((k) => k.id));
+// Section order is Notes, Posts, Replies, Builds — not the same as KINDS.
+const SECTIONS = [
+  { id: 'note', label: 'Notes', header: 'text-sky-700' },
+  { id: 'post', label: 'Posts', header: 'text-orange-700' },
+  { id: 'reply', label: 'Replies', header: 'text-teal-700' },
+  { id: 'build', label: 'Builds', header: 'text-indigo-700' },
+];
 const EMPTY = {
   kind: 'note',
   status: 'draft',
@@ -60,6 +68,16 @@ function sortKey(item) {
   // Upcoming first by planned date; live items newest first.
   if (item.status === 'live') return -new Date(item.posted_at || item.created_at).getTime();
   return item.scheduled_for ? new Date(item.scheduled_for).getTime() : Number.MAX_SAFE_INTEGER;
+}
+
+function itemOrder(a, b) {
+  // Same order as the old status sections: status rank, then sortKey within that status.
+  const rank = (item) => {
+    const i = STATUSES.findIndex((s) => s.id === item.status);
+    return i === -1 ? STATUSES.length : i;
+  };
+  const byStatus = rank(a) - rank(b);
+  return byStatus !== 0 ? byStatus : sortKey(a) - sortKey(b);
 }
 
 function Editor({ initial, onCancel, onSaved }) {
@@ -202,11 +220,18 @@ export default function LiveCalendar() {
   }
 
   const groups = useMemo(() => {
-    const list = (items || []).filter((i) => filter === 'all' || i.kind === filter);
-    return STATUSES.map((s) => ({
+    const list = items || [];
+    const sections = SECTIONS.map((s) => ({
       ...s,
-      items: list.filter((i) => i.status === s.id).sort((a, b) => sortKey(a) - sortKey(b)),
-    })).filter((g) => g.items.length);
+      items: list.filter((i) => i.kind === s.id).sort(itemOrder),
+    })).filter((g) => g.items.length && (filter === 'all' || g.id === filter));
+    if (filter === 'all') {
+      const otherItems = list.filter((i) => !KNOWN_KIND_IDS.has(i.kind)).sort(itemOrder);
+      if (otherItems.length) {
+        sections.push({ id: 'other', label: 'Other', header: 'text-gray-500', items: otherItems });
+      }
+    }
+    return sections;
   }, [items, filter]);
 
   return (
@@ -253,11 +278,13 @@ export default function LiveCalendar() {
           <Loader2 className="h-5 w-5 animate-spin" />
         </div>
       ) : groups.length === 0 ? (
-        <p className="py-10 text-center text-sm text-gray-400">Nothing here yet. Add the first Note.</p>
+        <p className="py-10 text-center text-sm text-gray-400">
+          {filter === 'all' ? 'Nothing here yet. Add the first Note.' : 'No items yet'}
+        </p>
       ) : (
         groups.map((g) => (
           <section key={g.id}>
-            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">
+            <p className={`mb-2 text-xs font-medium uppercase tracking-wide ${g.header}`}>
               {g.label} · {g.items.length}
             </p>
             <ul className="space-y-2">
