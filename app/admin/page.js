@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import LiveCalendar from './LiveCalendar';
 import RepliesFeed from './RepliesFeed';
+import StatsView from './StatsView';
+import { markAdminBrowser } from '@/lib/visitor';
 import {
   Users,
   Sparkles,
@@ -15,6 +17,7 @@ import {
   RefreshCw,
   CalendarDays,
   MessageSquare,
+  BarChart3,
 } from 'lucide-react';
 
 function fmtDate(iso) {
@@ -74,7 +77,7 @@ export default function AdminPage() {
   const [data, setData] = useState(null);
   const [searches, setSearches] = useState([]);
   const [searchesBusy, setSearchesBusy] = useState(false);
-  const [view, setView] = useState('dashboard'); // dashboard | calendar | replies
+  const [view, setView] = useState('dashboard'); // dashboard | calendar | replies | stats
 
   // Login form
   const [email, setEmail] = useState('');
@@ -107,6 +110,8 @@ export default function AdminPage() {
       return;
     }
     setData(await res.json());
+    // Flag this browser so its visits are left out of the Stats tab.
+    markAdminBrowser();
     setStatus('ready');
     loadSearches();
   }
@@ -287,10 +292,22 @@ export default function AdminPage() {
             <MessageSquare className="h-4 w-4" />
             Replies
           </button>
+          <button
+            onClick={() => setView('stats')}
+            className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition ${
+              view === 'stats'
+                ? 'border-orange-500 text-orange-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <BarChart3 className="h-4 w-4" />
+            Stats
+          </button>
         </div>
 
         {view === 'calendar' && <LiveCalendar />}
         {view === 'replies' && <RepliesFeed />}
+        {view === 'stats' && <StatsView />}
 
         {view === 'dashboard' && (
           <>

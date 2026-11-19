@@ -79,7 +79,9 @@ export default function PrivacyPage() {
           <section>
             <h2 className="mb-1 text-lg font-semibold text-gray-900">Cookies</h2>
             <p>
-              We use a minimal login/session cookie to keep you signed in. We don&rsquo;t use
+              We use a minimal login/session cookie to keep you signed in, and a random,
+              anonymous visitor id so our page-view counts don&rsquo;t count the same person
+              twice. It isn&rsquo;t linked to your name, email or IP address. We don&rsquo;t use
               advertising cookies.
             </p>
           </section>
