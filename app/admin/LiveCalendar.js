@@ -15,11 +15,12 @@ const STATUSES = [
   { id: 'live', label: 'Live', style: 'bg-green-100 text-green-700' },
 ];
 const KINDS = [
-  { id: 'note', label: 'Note' },
-  { id: 'reply', label: 'Reply' },
-  { id: 'post', label: 'Post' },
-  { id: 'build', label: 'Build' },
+  { id: 'note', label: 'Note', style: 'bg-sky-100 text-sky-700' },
+  { id: 'reply', label: 'Reply', style: 'bg-teal-100 text-teal-700' },
+  { id: 'post', label: 'Post', style: 'bg-orange-100 text-orange-700' },
+  { id: 'build', label: 'Build', style: 'bg-indigo-100 text-indigo-700' },
 ];
+const UNKNOWN_KIND_STYLE = 'bg-gray-100 text-gray-500';
 const EMPTY = {
   kind: 'note',
   status: 'draft',
@@ -125,15 +126,20 @@ function Editor({ initial, onCancel, onSaved }) {
 
 function Row({ item, onEdit, onDelete }) {
   const s = STATUSES.find((x) => x.id === item.status) || STATUSES[2];
-  const kind = KINDS.find((k) => k.id === item.kind)?.label || item.kind;
+  const k = KINDS.find((x) => x.id === item.kind);
   const when =
     item.status === 'live' ? fmtDay(item.posted_at) : fmtDay(item.scheduled_for);
-  const meta = [kind, when, item.campaign && `#${item.campaign}`, item.notes].filter(Boolean);
+  const meta = [when, item.campaign && `#${item.campaign}`, item.notes].filter(Boolean);
   return (
     <li className="group flex items-start gap-3 rounded-xl border border-gray-200 bg-white p-3">
-      <span className={`mt-0.5 flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${s.style}`}>
-        {s.label}
-      </span>
+      <div className="mt-0.5 flex flex-shrink-0 gap-1">
+        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${k?.style || UNKNOWN_KIND_STYLE}`}>
+          {k?.label || item.kind || 'Unknown'}
+        </span>
+        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${s.style}`}>
+          {s.label}
+        </span>
+      </div>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium text-gray-900">{item.title}</p>
         <p className="mt-0.5 text-xs text-gray-500">
