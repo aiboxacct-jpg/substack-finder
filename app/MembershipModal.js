@@ -133,7 +133,7 @@ export default function MembershipModal({
             One subscription. Unlimited everything.
           </p>
           <div className="mt-3 flex items-baseline gap-1">
-            <span className="text-3xl font-extrabold">$9.99</span>
+            <span className="text-3xl font-extrabold">$5</span>
             <span className="text-sm font-semibold text-white/90">/month</span>
           </div>
         </div>
@@ -199,7 +199,7 @@ export default function MembershipModal({
                   className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-orange-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-orange-600 disabled:opacity-60"
                 >
                   {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Upgrade to Stack Tools Member — $9.99/mo
+                  Upgrade to Stack Tools Member — $5/mo
                 </button>
                 <button
                   onClick={onClose}
