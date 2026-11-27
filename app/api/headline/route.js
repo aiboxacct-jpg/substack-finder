@@ -63,8 +63,8 @@ export async function POST(request) {
         return Response.json(
           {
             error: user
-              ? `You've used your ${free.limit} free analyses. More unlock in ${wait}. Or go unlimited now: a $9.99/mo Stack Tools membership unlocks every tool and lets you save your work.`
-              : `You've used your ${free.limit} free analyses. More unlock in ${wait}. Sign up free for ${FREE_LIMITS.free} at a time, or go unlimited with a $9.99/mo membership across every Stack Tool.`,
+              ? `You've used your ${free.limit} free analyses. More unlock in ${wait}. Or go unlimited now: a $5/mo Stack Tools membership unlocks every tool and lets you save your work.`
+              : `You've used your ${free.limit} free analyses. More unlock in ${wait}. Sign up free for ${FREE_LIMITS.free} at a time, or go unlimited with a $5/mo membership across every Stack Tool.`,
             signup: !user,
             upgrade: !!user,
           },
@@ -77,7 +77,7 @@ export async function POST(request) {
         return Response.json(
           {
             error:
-              'This tool has hit its daily free limit. Check back tomorrow, or skip the wait with a $9.99/mo membership: unlimited use of every Stack Tool.',
+              'This tool has hit its daily free limit. Check back tomorrow, or skip the wait with a $5/mo membership: unlimited use of every Stack Tool.',
             upgrade: true,
           },
           { status: 429 }

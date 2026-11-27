@@ -43,7 +43,7 @@ export default function TermsPage() {
           <section>
             <h2 className="mb-1 text-lg font-semibold text-gray-900">4. Membership &amp; billing</h2>
             <p>
-              A free plan is available. A paid membership is $9.99/month, billed through Stripe and
+              A free plan is available. A paid membership is $5/month, billed through Stripe and
               renewing automatically until you cancel. You can cancel anytime, and your access
               continues until the end of the paid period. Except where required by law, we
               don&rsquo;t provide prorated refunds for partial periods.
